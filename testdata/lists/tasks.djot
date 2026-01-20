@@ -1,0 +1,12 @@
+- [ ] Unchecked task
+- [x] Completed task
+- [ ] Another unchecked task
+
+- [ ] Task with _emphasis_
+- [x] Task with *strong*
+- [ ] Task with [link](https://example.com)
+
+- [ ] Todo item 1
+- [x] Done item
+- [ ] Todo item 2
+- [x] Another done item

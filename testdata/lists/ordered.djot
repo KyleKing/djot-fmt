@@ -1,0 +1,13 @@
+1. First item
+1. Second item
+1. Third item
+
+1. Parent item
+
+   1. Nested item
+   1. Another nested item
+
+1. Back to parent level
+
+5. Should be normalized to 1.
+6. For all items

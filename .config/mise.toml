@@ -1,0 +1,28 @@
+[tools]
+"go:golang.org/x/tools/cmd/goimports" = "latest"
+"go:github.com/golangci/golangci-lint/cmd/golangci-lint" = "v2.8.0"
+commitizen = "latest"
+golang = "1.23"
+hk = "0.8.2"
+pkl = "latest"
+python = "3.13"
+
+[tasks.ci]
+description = "Run all CI checks"
+run = "hk check"
+
+[tasks.fmt]
+description = "Format code"
+run = "hk fix"
+
+[tasks.test]
+description = "Run tests"
+run = "go test -v ./..."
+
+[tasks.build]
+description = "Build binary"
+run = "go build -o djot-fmt"
+
+[tasks.install]
+description = "Install binary"
+run = "go install"

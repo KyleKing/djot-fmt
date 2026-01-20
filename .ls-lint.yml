@@ -1,0 +1,15 @@
+---
+ls:
+  .go: snake_case
+  .md: kebab-case | SCREAMING_SNAKE_CASE
+  .pkl: kebab-case
+  .toml: kebab-case
+  .yaml: kebab-case
+  .yml: kebab-case
+
+ignore:
+  - .git
+  - .idea
+  - .vscode
+  - testdata
+  - vendor

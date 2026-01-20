@@ -1,0 +1,78 @@
+package main
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/kyleking/djot-fmt/internal/iohelper"
+)
+
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
+func main() {
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "-v", "--version":
+			fmt.Printf("djot-fmt %s (commit: %s, built: %s)\n", version, commit, date)
+			os.Exit(0)
+		case "-h", "--help":
+			printHelp()
+			os.Exit(0)
+		}
+	}
+
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
+	opts, err := iohelper.ParseArgs(os.Args[1:])
+	if err != nil {
+		return fmt.Errorf("parsing arguments: %w", err)
+	}
+
+	return iohelper.ProcessFile(opts)
+}
+
+func printHelp() {
+	fmt.Print(`djot-fmt - Automatically format djot files
+
+Usage:
+  djot-fmt [options] [file]
+
+Arguments:
+  file               File to format (default: stdin)
+
+Options:
+  -w, --write        Write result to source file instead of stdout
+  -c, --check        Check if file is formatted (exit 1 if not)
+  -o, --output FILE  Write output to FILE instead of stdout
+  -h, --help         Show this help message
+  -v, --version      Show version information
+
+Examples:
+  # Format stdin to stdout
+  cat file.djot | djot-fmt
+
+  # Format file and write back
+  djot-fmt -w file.djot
+
+  # Check if file is formatted
+  djot-fmt -c file.djot
+
+  # Format to different file
+  djot-fmt -o output.djot input.djot
+
+Focus:
+  This tool primarily focuses on fixing common list formatting issues:
+  - Missing newlines between list items
+  - Incorrect indentation for nested lists
+  - Blank line spacing before nested content
+`)
+}
