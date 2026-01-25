@@ -1,0 +1,34 @@
+basic SLW wrapping in paragraph
+.
+This is a long sentence that exceeds the minimum length. It should be wrapped! Does it work? Yes it does.
+.
+This is a long sentence that exceeds the minimum length.
+It should be wrapped!
+Does it work?
+Yes it does.
+.
+
+SLW disabled
+.
+This is a long sentence. It should not be wrapped! Even though it’s long?
+.
+This is a long sentence. It should not be wrapped! Even though it’s long?
+.
+--no-wrap-sentences
+
+SLW with abbreviations
+.
+Dr. Smith met with Prof. Johnson yesterday morning. They discussed important topics that were quite significant.
+.
+Dr. Smith met with Prof. Johnson yesterday morning.
+They discussed important topics that were quite significant.
+.
+
+aggressive mode (min 0)
+.
+Short sentence. Another one.
+.
+Short sentence.
+Another one.
+.
+--slw-min-line=0

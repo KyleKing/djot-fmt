@@ -1,0 +1,133 @@
+simple paragraph
+.
+Hello, world!
+.
+Hello, world!
+.
+
+tight list
+.
+- one
+- two
+- three
+.
+- one
+- two
+- three
+.
+
+list with paragraph after
+.
+- one
+- two
+
+Paragraph after.
+.
+- one
+- two
+
+Paragraph after.
+.
+
+nested list
+.
+- one
+- two
+
+  - sub
+  - sub
+.
+- one
+- two
+
+  - sub
+  - sub
+.
+
+emphasis
+.
+_italic_
+.
+_italic_
+.
+
+strong
+.
+*bold*
+.
+*bold*
+.
+
+simple numbered list - normalized to 1.
+.
+1. First
+2. Second
+.
+1. First
+1. Second
+.
+
+nested ordered list - all items normalized
+.
+1. First
+
+   1. Nested
+   2. Items
+.
+1. First
+
+  1. Nested
+  1. Items
+.
+
+non-standard numbering gets normalized
+.
+5. Fifth
+6. Sixth
+.
+1. Fifth
+1. Sixth
+.
+
+tight ordered list
+.
+1. one
+2. two
+3. three
+.
+1. one
+1. two
+1. three
+.
+
+unchecked task
+.
+- [ ] Task
+.
+- [ ] Task
+.
+
+checked task
+.
+- [x] Done
+.
+- [x] Done
+.
+
+mixed tasks
+.
+- [ ] Todo
+- [x] Done
+- [ ] Pending
+.
+- [ ] Todo
+- [x] Done
+- [ ] Pending
+.
+
+task with inline formatting
+.
+- [ ] Inline _formatting_ *bold*
+.
+- [ ] Inline _formatting_ *bold*
+.
