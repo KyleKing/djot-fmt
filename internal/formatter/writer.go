@@ -1,6 +1,10 @@
 package formatter
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/kyleking/djot-fmt/internal/slw"
+)
 
 type BlockType int
 
@@ -17,11 +21,21 @@ type Writer struct {
 	lastBlock    BlockType
 	inListItem   bool
 	lineStart    bool
+	slwConfig    *slw.Config
+	inParagraph  bool
 }
 
 func NewWriter() *Writer {
 	return &Writer{
 		lineStart: true,
+		slwConfig: slw.DefaultConfig(),
+	}
+}
+
+func NewWriterWithConfig(slwConfig *slw.Config) *Writer {
+	return &Writer{
+		lineStart: true,
+		slwConfig: slwConfig,
 	}
 }
 
@@ -68,6 +82,14 @@ func (w *Writer) NeedsBlankLine() bool {
 
 func (w *Writer) InListItem() bool {
 	return w.inListItem
+}
+
+func (w *Writer) SetInParagraph(inPara bool) {
+	w.inParagraph = inPara
+}
+
+func (w *Writer) InParagraph() bool {
+	return w.inParagraph
 }
 
 func (w *Writer) String() string {
