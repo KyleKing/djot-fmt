@@ -16,27 +16,95 @@ func TestParseArgs(t *testing.T) {
 		{
 			name: "no args (stdin)",
 			args: []string{},
-			want: &Options{},
+			want: &Options{
+				SlwMarkers: ".!?",
+				SlwWrap:    88,
+				SlwMinLine: 40,
+			},
 		},
 		{
 			name: "input file only",
 			args: []string{"input.djot"},
-			want: &Options{InputFile: "input.djot"},
+			want: &Options{
+				InputFile:  "input.djot",
+				SlwMarkers: ".!?",
+				SlwWrap:    88,
+				SlwMinLine: 40,
+			},
 		},
 		{
 			name: "write flag",
 			args: []string{"-w", "file.djot"},
-			want: &Options{Write: true, InputFile: "file.djot"},
+			want: &Options{
+				Write:      true,
+				InputFile:  "file.djot",
+				SlwMarkers: ".!?",
+				SlwWrap:    88,
+				SlwMinLine: 40,
+			},
 		},
 		{
 			name: "check flag",
 			args: []string{"-c", "file.djot"},
-			want: &Options{Check: true, InputFile: "file.djot"},
+			want: &Options{
+				Check:      true,
+				InputFile:  "file.djot",
+				SlwMarkers: ".!?",
+				SlwWrap:    88,
+				SlwMinLine: 40,
+			},
 		},
 		{
 			name: "output flag",
 			args: []string{"-o", "out.djot", "in.djot"},
-			want: &Options{OutputFile: "out.djot", InputFile: "in.djot"},
+			want: &Options{
+				OutputFile: "out.djot",
+				InputFile:  "in.djot",
+				SlwMarkers: ".!?",
+				SlwWrap:    88,
+				SlwMinLine: 40,
+			},
+		},
+		{
+			name: "no wrap sentences",
+			args: []string{"--no-wrap-sentences", "file.djot"},
+			want: &Options{
+				InputFile:       "file.djot",
+				NoWrapSentences: true,
+				SlwMarkers:      ".!?",
+				SlwWrap:         88,
+				SlwMinLine:      40,
+			},
+		},
+		{
+			name: "custom slw markers",
+			args: []string{"--slw-markers", ".!?;", "file.djot"},
+			want: &Options{
+				InputFile:  "file.djot",
+				SlwMarkers: ".!?;",
+				SlwWrap:    88,
+				SlwMinLine: 40,
+			},
+		},
+		{
+			name: "custom slw wrap",
+			args: []string{"--slw-wrap", "100", "file.djot"},
+			want: &Options{
+				InputFile:  "file.djot",
+				SlwMarkers: ".!?",
+				SlwWrap:    100,
+				SlwMinLine: 40,
+			},
+		},
+		{
+			name: "custom slw min line",
+			args: []string{"--slw-min-line", "0", "file.djot"},
+			want: &Options{
+				InputFile:  "file.djot",
+				SlwMarkers: ".!?",
+				SlwWrap:    88,
+				SlwMinLine: 0,
+			},
 		},
 		{
 			name:    "write without file",

@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/kyleking/djot-fmt/internal/formatter"
+	"github.com/kyleking/djot-fmt/internal/slw"
 	"github.com/sivukhin/godjot/v2/djot_parser"
 )
 
@@ -18,7 +19,17 @@ func ProcessFile(opts *Options) error {
 	}
 
 	ast := djot_parser.BuildDjotAst(input)
-	formatted := formatter.Format(ast)
+	
+	// Build SLW config from options
+	slwConfig := &slw.Config{
+		Enabled:       !opts.NoWrapSentences,
+		Markers:       opts.SlwMarkers,
+		MinLineLength: opts.SlwMinLine,
+		MaxLineWidth:  opts.SlwWrap,
+		Abbreviations: slw.DefaultConfig().Abbreviations,
+	}
+	
+	formatted := formatter.FormatWithConfig(ast, slwConfig)
 
 	if opts.Check {
 		return checkFormatted(input, formatted, opts.InputFile)
