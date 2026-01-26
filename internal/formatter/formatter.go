@@ -1,6 +1,7 @@
 package formatter
 
 import (
+	"github.com/kyleking/djot-fmt/internal/slw"
 	. "github.com/sivukhin/godjot/v2/djot_parser"
 )
 
@@ -9,7 +10,14 @@ func formatDocument(state ConversionState[*Writer], next func(Children)) {
 }
 
 func formatText(state ConversionState[*Writer], next func(Children)) {
-	state.Writer.WriteString(string(state.Node.Text))
+	text := string(state.Node.Text)
+	
+	// Apply SLW wrapping if we're in a paragraph
+	if state.Writer.InParagraph() && state.Writer.slwConfig != nil && state.Writer.slwConfig.Enabled {
+		text = slw.WrapText(text, state.Writer.slwConfig)
+	}
+	
+	state.Writer.WriteString(text)
 }
 
 func formatParagraph(state ConversionState[*Writer], next func(Children)) {
@@ -19,7 +27,10 @@ func formatParagraph(state ConversionState[*Writer], next func(Children)) {
 		w.WriteString("\n")
 	}
 
+	w.SetInParagraph(true)
 	next(nil)
+	w.SetInParagraph(false)
+	
 	w.WriteString("\n")
 	w.SetLastBlockType(BlockTypeParagraph)
 }
@@ -148,6 +159,17 @@ var defaultRegistry = map[DjotNode]Conversion[*Writer]{
 
 func Format(ast []TreeNode[DjotNode]) string {
 	writer := NewWriter()
+	ctx := ConversionContext[*Writer]{
+		Format:   "djot",
+		Registry: defaultRegistry,
+	}
+	ctx.ConvertDjot(writer, ast...)
+	return writer.String()
+}
+
+// FormatWithConfig formats the djot AST with custom SLW configuration
+func FormatWithConfig(ast []TreeNode[DjotNode], slwConfig *slw.Config) string {
+	writer := NewWriterWithConfig(slwConfig)
 	ctx := ConversionContext[*Writer]{
 		Format:   "djot",
 		Registry: defaultRegistry,

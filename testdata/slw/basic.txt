@@ -1,0 +1,125 @@
+simple sentence wrapping
+.
+This is a long sentence. It contains multiple clauses! Does it work? Yes it does.
+.
+This is a long sentence.
+It contains multiple clauses!
+Does it work?
+Yes it does.
+.
+
+single sentence
+.
+This is a single sentence.
+.
+This is a single sentence.
+.
+
+no wrapping for short text
+.
+Short text.
+.
+Short text.
+.
+
+empty string
+.
+
+.
+
+.
+
+soft wrap mode - below threshold
+.
+This is below threshold. Not wrapped.
+.
+This is below threshold. Not wrapped.
+.
+
+aggressive mode wraps short lines
+.
+Short sentence. Another one.
+.
+Short sentence.
+Another one.
+.
+--slw-min-line=0
+
+common title abbreviations
+.
+Dr. Smith met with Prof. Johnson yesterday morning. They discussed important topics that were quite significant.
+.
+Dr. Smith met with Prof. Johnson yesterday morning.
+They discussed important topics that were quite significant.
+.
+
+time abbreviations
+.
+The meeting is at 9 a.m. tomorrow. Please arrive on time.
+.
+The meeting is at 9 a.m. tomorrow.
+Please arrive on time.
+.
+
+academic abbreviations
+.
+She earned her Ph.D. in computer science. Her research is impressive.
+.
+She earned her Ph.D. in computer science.
+Her research is impressive.
+.
+
+latin terms
+.
+Use proper citations, e.g. APA or MLA format. The document should be clear, i.e. well-written.
+.
+Use proper citations, e.g. APA or MLA format.
+The document should be clear, i.e. well-written.
+.
+
+preserve existing line breaks
+.
+Line one. Line two.
+Line three. Line four.
+.
+Line one. Line two.
+Line three. Line four.
+.
+
+empty lines preserved
+.
+First paragraph. Second sentence.
+
+New paragraph. More text.
+.
+First paragraph. Second sentence.
+
+New paragraph. More text.
+.
+
+disabled wrapping
+.
+This is a long sentence. It should not be wrapped! Even though it's long?
+.
+This is a long sentence. It should not be wrapped! Even though it's long?
+.
+--no-wrap-sentences
+
+custom markers
+.
+First sentence. Second sentence! Third sentence? Fourth sentence.
+.
+First sentence.
+Second sentence!
+Third sentence?
+Fourth sentence.
+.
+
+custom threshold
+.
+This is a sentence that is definitely more than sixty characters long! Next sentence.
+.
+This is a sentence that is definitely more than sixty characters long!
+Next sentence.
+.
+--slw-min-line=60

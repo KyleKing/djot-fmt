@@ -56,8 +56,14 @@ Options:
   -h, --help         Show this help message
   -v, --version      Show version information
 
+SLW (Semantic Line Wrap) Options:
+  --no-wrap-sentences      Disable semantic line wrapping
+  --slw-markers TEXT       Characters that mark sentence endings (default: ".!?")
+  --slw-wrap INTEGER       Maximum line width for wrapping (default: 88, set to 0 to disable)
+  --slw-min-line INTEGER   Minimum line length before wrapping (default: 40, set to 0 for aggressive mode)
+
 Examples:
-  # Format stdin to stdout
+  # Format stdin to stdout with SLW enabled (default)
   cat file.djot | djot-fmt
 
   # Format file and write back
@@ -69,10 +75,16 @@ Examples:
   # Format to different file
   djot-fmt -o output.djot input.djot
 
+  # Disable SLW wrapping
+  djot-fmt --no-wrap-sentences file.djot
+
+  # Aggressive SLW mode (always wrap after sentences)
+  djot-fmt --slw-min-line 0 file.djot
+
 Focus:
-  This tool primarily focuses on fixing common list formatting issues:
-  - Missing newlines between list items
-  - Incorrect indentation for nested lists
-  - Blank line spacing before nested content
+  This tool formats djot files with the following features:
+  - List formatting (indentation, spacing, etc.)
+  - Semantic line wrapping (SLW) for cleaner diffs
+  - Preserves inline formatting (emphasis, strong, links, etc.)
 `)
 }
