@@ -1,7 +1,11 @@
+[env]
+GOPROXY = "https://proxy.golang.org,direct"
+GOSUMDB = "sum.golang.org"
+
 [tools]
 "go:golang.org/x/tools/cmd/goimports" = "latest"
-"go:github.com/golangci/golangci-lint/cmd/golangci-lint" = "v2.8.0"
-commitizen = "latest"
+"go:github.com/golangci/golangci-lint/cmd/golangci-lint" = "latest"
+"pipx:commitizen" = "latest"
 golang = "1.23"
 hk = "0.8.2"
 pkl = "latest"

@@ -1,4 +1,4 @@
-module github.com/kyleking/djot-fmt
+module github.com/KyleKing/djot-fmt
 
 go 1.23
 

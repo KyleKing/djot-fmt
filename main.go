@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kyleking/djot-fmt/internal/iohelper"
+	"github.com/KyleKing/djot-fmt/internal/iohelper"
 )
 
 var (

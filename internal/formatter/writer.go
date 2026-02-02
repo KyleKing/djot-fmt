@@ -3,7 +3,7 @@ package formatter
 import (
 	"strings"
 
-	"github.com/kyleking/djot-fmt/internal/slw"
+	"github.com/KyleKing/djot-fmt/internal/slw"
 )
 
 type BlockType int

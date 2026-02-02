@@ -13,7 +13,7 @@ Automatic formatter for [djot](https://djot.net/) markup files.
 ## Installation
 
 ```sh
-go install github.com/kyleking/djot-fmt@latest
+go install github.com/KyleKing/djot-fmt@latest
 ```
 
 ## Usage

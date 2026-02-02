@@ -1,7 +1,7 @@
 package formatter
 
 import (
-	"github.com/kyleking/djot-fmt/internal/slw"
+	"github.com/KyleKing/djot-fmt/internal/slw"
 	. "github.com/sivukhin/godjot/v2/djot_parser"
 )
 
