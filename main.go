@@ -37,7 +37,11 @@ func run() error {
 		return fmt.Errorf("parsing arguments: %w", err)
 	}
 
-	return iohelper.ProcessFile(opts)
+	if err := iohelper.ProcessFile(opts); err != nil {
+		return fmt.Errorf("processing file: %w", err)
+	}
+
+	return nil
 }
 
 func printHelp() {

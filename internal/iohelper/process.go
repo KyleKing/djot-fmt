@@ -19,7 +19,7 @@ func ProcessFile(opts *Options) error {
 	}
 
 	ast := djot_parser.BuildDjotAst(input)
-	
+
 	// Build SLW config from options
 	slwConfig := &slw.Config{
 		Enabled:       !opts.NoWrapSentences,
@@ -28,7 +28,7 @@ func ProcessFile(opts *Options) error {
 		MaxLineWidth:  opts.SlwWrap,
 		Abbreviations: slw.DefaultConfig().Abbreviations,
 	}
-	
+
 	formatted := formatter.FormatWithConfig(ast, slwConfig)
 
 	if opts.Check {
@@ -40,13 +40,19 @@ func ProcessFile(opts *Options) error {
 
 func readInput(opts *Options) ([]byte, error) {
 	if opts.InputFile == "" || opts.InputFile == "-" {
-		return io.ReadAll(os.Stdin)
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return nil, fmt.Errorf("reading from stdin: %w", err)
+		}
+
+		return data, nil
 	}
 
 	data, err := os.ReadFile(opts.InputFile)
 	if err != nil {
 		return nil, fmt.Errorf("reading input file: %w", err)
 	}
+
 	return data, nil
 }
 
@@ -54,24 +60,30 @@ func writeOutput(formatted string, opts *Options) error {
 	output := []byte(formatted)
 
 	if opts.Write {
-		if err := os.WriteFile(opts.InputFile, output, 0644); err != nil {
+		if err := os.WriteFile(opts.InputFile, output, 0600); err != nil {
 			return fmt.Errorf("writing to file: %w", err)
 		}
+
 		return nil
 	}
 
 	var writer io.Writer = os.Stdout
+
 	if opts.OutputFile != "" {
 		f, err := os.Create(opts.OutputFile)
 		if err != nil {
 			return fmt.Errorf("creating output file: %w", err)
 		}
+
 		defer f.Close()
 		writer = f
 	}
 
-	_, err := writer.Write(output)
-	return err
+	if _, err := writer.Write(output); err != nil {
+		return fmt.Errorf("writing output: %w", err)
+	}
+
+	return nil
 }
 
 func checkFormatted(original []byte, formatted string, filename string) error {
@@ -84,5 +96,6 @@ func checkFormatted(original []byte, formatted string, filename string) error {
 	} else {
 		fmt.Fprintln(os.Stderr, "input: not formatted")
 	}
+
 	return errors.New("file not formatted")
 }

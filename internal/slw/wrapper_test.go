@@ -1,30 +1,32 @@
-package slw
+package slw_test
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/KyleKing/djot-fmt/internal/slw"
 	"github.com/stretchr/testify/assert"
 )
 
 // Test data structures and configuration
 func TestDefaultConfig(t *testing.T) {
-	config := DefaultConfig()
+	config := slw.DefaultConfig()
 
 	assert.True(t, config.Enabled)
 	assert.Equal(t, ".!?", config.Markers)
 	assert.Equal(t, 40, config.MinLineLength)
 	assert.Equal(t, 88, config.MaxLineWidth)
 	assert.NotNil(t, config.Abbreviations)
-	assert.True(t, len(config.Abbreviations) > 0)
+	assert.NotEmpty(t, config.Abbreviations)
 }
 
 func TestConfigStructure(t *testing.T) {
-	config := &Config{
+	config := &slw.Config{
 		Enabled:       false,
 		Markers:       ".!",
 		MinLineLength: 50,
@@ -37,19 +39,6 @@ func TestConfigStructure(t *testing.T) {
 	assert.Equal(t, 50, config.MinLineLength)
 	assert.Equal(t, 100, config.MaxLineWidth)
 	assert.True(t, config.Abbreviations["test"])
-}
-
-func TestAbbreviationsMap(t *testing.T) {
-	abbrevs := getDefaultAbbreviations()
-
-	// Test that common abbreviations are present (case-insensitive)
-	assert.True(t, abbrevs["dr"])
-	assert.True(t, abbrevs["prof"])
-	assert.True(t, abbrevs["a.m"])
-	assert.True(t, abbrevs["p.m"])
-	assert.True(t, abbrevs["e.g"])
-	assert.True(t, abbrevs["i.e"])
-	assert.True(t, abbrevs["etc"])
 }
 
 // Fixture represents a single test case from a fixture file
@@ -69,14 +58,17 @@ type Fixture struct {
 // expected output
 // .
 // --option=value (optional)
+//
+//nolint:cyclop // Test fixture parser has inherent complexity from state machine
 func readFixtures(filepath string) ([]Fixture, error) {
 	file, err := os.Open(filepath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("opening fixture file: %w", err)
 	}
 	defer file.Close()
 
 	var fixtures []Fixture
+
 	scanner := bufio.NewScanner(file)
 	lineNum := 0
 
@@ -98,41 +90,52 @@ func readFixtures(filepath string) ([]Fixture, error) {
 		if !scanner.Scan() {
 			break
 		}
+
 		if strings.TrimSpace(scanner.Text()) != "." {
 			continue
 		}
+
 		lineNum++
 
 		// Read input until '.'
 		var inputLines []string
+
 		for scanner.Scan() {
 			lineNum++
+
 			line := scanner.Text()
 			if line == "." {
 				break
 			}
+
 			inputLines = append(inputLines, line)
 		}
 
 		// Read expected until '.'
 		var expectedLines []string
+
 		for scanner.Scan() {
 			lineNum++
+
 			line := scanner.Text()
 			if line == "." {
 				break
 			}
+
 			expectedLines = append(expectedLines, line)
 		}
 
 		// Read options (optional)
 		options := make(map[string]string)
+
 		for scanner.Scan() {
 			lineNum++
+
 			line := strings.TrimSpace(scanner.Text())
 			if line == "" {
 				break
 			}
+
 			if strings.HasPrefix(line, "--") {
 				// Parse option
 				option := strings.TrimPrefix(line, "--")
@@ -151,6 +154,7 @@ func readFixtures(filepath string) ([]Fixture, error) {
 		if len(inputLines) > 0 {
 			input += "\n"
 		}
+
 		expected := strings.Join(expectedLines, "\n")
 		if len(expectedLines) > 0 {
 			expected += "\n"
@@ -165,12 +169,16 @@ func readFixtures(filepath string) ([]Fixture, error) {
 		})
 	}
 
-	return fixtures, scanner.Err()
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("scanning fixture file: %w", err)
+	}
+
+	return fixtures, nil
 }
 
 // configFromOptions creates a Config from fixture options
-func configFromOptions(options map[string]string) *Config {
-	config := DefaultConfig()
+func configFromOptions(options map[string]string) *slw.Config {
+	config := slw.DefaultConfig()
 
 	if val, ok := options["no-wrap-sentences"]; ok && val == "true" {
 		config.Enabled = false
@@ -202,6 +210,7 @@ func TestFixtures(t *testing.T) {
 
 	for _, filename := range fixtureFiles {
 		path := filepath.Join("../../testdata/slw", filename)
+
 		fixtures, err := readFixtures(path)
 		if err != nil {
 			t.Fatalf("Failed to read fixtures from %s: %v", filename, err)
@@ -210,7 +219,7 @@ func TestFixtures(t *testing.T) {
 		for _, fixture := range fixtures {
 			t.Run(fixture.Title, func(t *testing.T) {
 				config := configFromOptions(fixture.Options)
-				result := WrapText(fixture.Input, config)
+				result := slw.WrapText(fixture.Input, config)
 
 				if !assert.Equal(t, fixture.Expected, result) {
 					t.Logf("Fixture: %s (line %d)", fixture.Title, fixture.LineNumber)
@@ -220,43 +229,5 @@ func TestFixtures(t *testing.T) {
 				}
 			})
 		}
-	}
-}
-
-func TestIsAbbreviation(t *testing.T) {
-	config := DefaultConfig()
-
-	tests := []struct {
-		name      string
-		text      string
-		markerPos int
-		expected  bool
-	}{
-		{
-			name:      "Dr. is abbreviation",
-			text:      "Dr. Smith",
-			markerPos: 2,
-			expected:  true,
-		},
-		{
-			name:      "regular sentence end",
-			text:      "Hello world.",
-			markerPos: 11,
-			expected:  false,
-		},
-		{
-			name:      "Ph.D. has multiple periods",
-			text:      "Ph.D. degree",
-			markerPos: 4,
-			expected:  true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			runes := []rune(tt.text)
-			result := isAbbreviation(runes, tt.markerPos, config.Abbreviations)
-			assert.Equal(t, tt.expected, result)
-		})
 	}
 }

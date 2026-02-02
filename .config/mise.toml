@@ -1,7 +1,3 @@
-[env]
-GOPROXY = "https://proxy.golang.org,direct"
-GOSUMDB = "sum.golang.org"
-
 [tools]
 "go:golang.org/x/tools/cmd/goimports" = "latest"
 "go:github.com/golangci/golangci-lint/cmd/golangci-lint" = "latest"

@@ -16,13 +16,13 @@ const (
 )
 
 type Writer struct {
-	output       strings.Builder
-	indentLevel  int
-	lastBlock    BlockType
-	inListItem   bool
-	lineStart    bool
-	slwConfig    *slw.Config
-	inParagraph  bool
+	output      strings.Builder
+	indentLevel int
+	lastBlock   BlockType
+	inListItem  bool
+	lineStart   bool
+	slwConfig   *slw.Config
+	inParagraph bool
 }
 
 func NewWriter() *Writer {
@@ -42,13 +42,15 @@ func NewWriterWithConfig(slwConfig *slw.Config) *Writer {
 func (w *Writer) WriteString(s string) *Writer {
 	w.output.WriteString(s)
 	w.lineStart = len(s) > 0 && s[len(s)-1] == '\n'
+
 	return w
 }
 
 func (w *Writer) WriteIndent() *Writer {
-	for i := 0; i < w.indentLevel; i++ {
+	for range w.indentLevel {
 		w.output.WriteString("  ")
 	}
+
 	return w
 }
 
@@ -61,6 +63,7 @@ func (w *Writer) DecreaseIndent() *Writer {
 	if w.indentLevel > 0 {
 		w.indentLevel--
 	}
+
 	return w
 }
 

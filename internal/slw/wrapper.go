@@ -51,6 +51,7 @@ func getDefaultAbbreviations() map[string]bool {
 		result[strings.ToLower(abbrev)] = true
 		result[strings.ToLower(strings.TrimSuffix(abbrev, "."))] = true
 	}
+
 	return result
 }
 
@@ -61,6 +62,7 @@ func WrapText(text string, config *Config) string {
 	}
 
 	var result strings.Builder
+
 	lines := strings.Split(text, "\n")
 
 	for i, line := range lines {
@@ -89,36 +91,22 @@ func wrapLine(line string, config *Config) string {
 	}
 
 	var result strings.Builder
+
 	runes := []rune(line)
 	currentLineStart := 0
 
 	for i := 0; i < len(runes); i++ {
-		char := runes[i]
+		if isSentenceBoundary(runes, i, config) {
+			segment := string(runes[currentLineStart : i+1])
+			result.WriteString(segment)
 
-		// Check if this is a sentence marker
-		if strings.ContainsRune(config.Markers, char) {
-			// Look ahead for whitespace
-			if i+1 < len(runes) && unicode.IsSpace(runes[i+1]) {
-				// Check if this is an abbreviation
-				if !isAbbreviation(runes, i, config.Abbreviations) {
-					// Extract the text up to and including this marker
-					segment := string(runes[currentLineStart : i+1])
-					result.WriteString(segment)
+			j := skipWhitespace(runes, i+1)
 
-					// Skip trailing whitespace
-					j := i + 1
-					for j < len(runes) && unicode.IsSpace(runes[j]) {
-						j++
-					}
+			if j < len(runes) {
+				result.WriteString("\n")
 
-					// Add newline if there's more content
-					if j < len(runes) {
-						result.WriteString("\n")
-						currentLineStart = j
-						i = j - 1 // Will be incremented in loop
-						continue
-					}
-				}
+				currentLineStart = j
+				i = j - 1
 			}
 		}
 	}
@@ -131,6 +119,33 @@ func wrapLine(line string, config *Config) string {
 	return result.String()
 }
 
+// isSentenceBoundary checks if position i is a sentence boundary
+func isSentenceBoundary(runes []rune, i int, config *Config) bool {
+	if i >= len(runes) {
+		return false
+	}
+
+	char := runes[i]
+	if !strings.ContainsRune(config.Markers, char) {
+		return false
+	}
+
+	if i+1 >= len(runes) || !unicode.IsSpace(runes[i+1]) {
+		return false
+	}
+
+	return !isAbbreviation(runes, i, config.Abbreviations)
+}
+
+// skipWhitespace returns the position after all whitespace starting at pos
+func skipWhitespace(runes []rune, pos int) int {
+	for pos < len(runes) && unicode.IsSpace(runes[pos]) {
+		pos++
+	}
+
+	return pos
+}
+
 // isAbbreviation checks if the marker is part of an abbreviation
 func isAbbreviation(runes []rune, markerPos int, abbreviations map[string]bool) bool {
 	// Look backwards to extract the word before the marker
@@ -138,6 +153,7 @@ func isAbbreviation(runes []rune, markerPos int, abbreviations map[string]bool) 
 	for start >= 0 && (unicode.IsLetter(runes[start]) || runes[start] == '.') {
 		start--
 	}
+
 	start++
 
 	// Extract the potential abbreviation (without the current marker)

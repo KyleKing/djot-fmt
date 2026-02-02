@@ -2,25 +2,25 @@ package formatter
 
 import (
 	"github.com/KyleKing/djot-fmt/internal/slw"
-	. "github.com/sivukhin/godjot/v2/djot_parser"
+	"github.com/sivukhin/godjot/v2/djot_parser"
 )
 
-func formatDocument(state ConversionState[*Writer], next func(Children)) {
+func formatDocument(_ djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	next(nil)
 }
 
-func formatText(state ConversionState[*Writer], next func(Children)) {
+func formatText(state djot_parser.ConversionState[*Writer], _ func(djot_parser.Children)) {
 	text := string(state.Node.Text)
-	
+
 	// Apply SLW wrapping if we're in a paragraph
 	if state.Writer.InParagraph() && state.Writer.slwConfig != nil && state.Writer.slwConfig.Enabled {
 		text = slw.WrapText(text, state.Writer.slwConfig)
 	}
-	
+
 	state.Writer.WriteString(text)
 }
 
-func formatParagraph(state ConversionState[*Writer], next func(Children)) {
+func formatParagraph(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	w := state.Writer
 
 	if w.NeedsBlankLine() {
@@ -30,12 +30,12 @@ func formatParagraph(state ConversionState[*Writer], next func(Children)) {
 	w.SetInParagraph(true)
 	next(nil)
 	w.SetInParagraph(false)
-	
+
 	w.WriteString("\n")
 	w.SetLastBlockType(BlockTypeParagraph)
 }
 
-func formatUnorderedList(state ConversionState[*Writer], next func(Children)) {
+func formatUnorderedList(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	w := state.Writer
 
 	if w.InListItem() {
@@ -48,7 +48,7 @@ func formatUnorderedList(state ConversionState[*Writer], next func(Children)) {
 	w.SetLastBlockType(BlockTypeList)
 }
 
-func formatOrderedList(state ConversionState[*Writer], next func(Children)) {
+func formatOrderedList(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	w := state.Writer
 
 	if w.InListItem() {
@@ -61,7 +61,7 @@ func formatOrderedList(state ConversionState[*Writer], next func(Children)) {
 	w.SetLastBlockType(BlockTypeList)
 }
 
-func formatTaskList(state ConversionState[*Writer], next func(Children)) {
+func formatTaskList(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	w := state.Writer
 
 	if w.InListItem() {
@@ -74,15 +74,16 @@ func formatTaskList(state ConversionState[*Writer], next func(Children)) {
 	w.SetLastBlockType(BlockTypeList)
 }
 
-func formatListItem(state ConversionState[*Writer], next func(Children)) {
+func formatListItem(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	w := state.Writer
 
 	marker := "- "
+
 	if state.Parent != nil {
 		switch state.Parent.Type {
-		case OrderedListNode:
+		case djot_parser.OrderedListNode:
 			marker = "1. "
-		case TaskListNode:
+		case djot_parser.TaskListNode:
 			class := state.Node.Attributes.Get("class")
 			if class == "checked" {
 				marker = "- [x] "
@@ -109,26 +110,26 @@ func formatListItem(state ConversionState[*Writer], next func(Children)) {
 	w.SetInListItem(false)
 }
 
-func formatEmphasis(state ConversionState[*Writer], next func(Children)) {
+func formatEmphasis(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	state.Writer.WriteString("_")
 	next(nil)
 	state.Writer.WriteString("_")
 }
 
-func formatStrong(state ConversionState[*Writer], next func(Children)) {
+func formatStrong(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	state.Writer.WriteString("*")
 	next(nil)
 	state.Writer.WriteString("*")
 }
 
-func formatLink(state ConversionState[*Writer], next func(Children)) {
+func formatLink(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	url := state.Node.Attributes.Get("url")
 	state.Writer.WriteString("[")
 	next(nil)
 	state.Writer.WriteString("](" + url + ")")
 }
 
-func formatHeading(state ConversionState[*Writer], next func(Children)) {
+func formatHeading(state djot_parser.ConversionState[*Writer], _ func(djot_parser.Children)) {
 	level := int(state.Node.Attributes.Get("level")[0] - '0')
 	w := state.Writer
 
@@ -136,44 +137,47 @@ func formatHeading(state ConversionState[*Writer], next func(Children)) {
 		w.WriteString("\n\n")
 	}
 
-	for i := 0; i < level; i++ {
+	for range level {
 		w.WriteString("#")
 	}
+
 	w.WriteString(" " + string(state.Node.Text) + "\n")
 	w.SetLastBlockType(BlockTypeHeading)
 }
 
-var defaultRegistry = map[DjotNode]Conversion[*Writer]{
-	DocumentNode:      formatDocument,
-	TextNode:          formatText,
-	ParagraphNode:     formatParagraph,
-	UnorderedListNode: formatUnorderedList,
-	OrderedListNode:   formatOrderedList,
-	TaskListNode:      formatTaskList,
-	ListItemNode:      formatListItem,
-	EmphasisNode:      formatEmphasis,
-	StrongNode:        formatStrong,
-	LinkNode:          formatLink,
-	HeadingNode:       formatHeading,
+var defaultRegistry = map[djot_parser.DjotNode]djot_parser.Conversion[*Writer]{
+	djot_parser.DocumentNode:      formatDocument,
+	djot_parser.TextNode:          formatText,
+	djot_parser.ParagraphNode:     formatParagraph,
+	djot_parser.UnorderedListNode: formatUnorderedList,
+	djot_parser.OrderedListNode:   formatOrderedList,
+	djot_parser.TaskListNode:      formatTaskList,
+	djot_parser.ListItemNode:      formatListItem,
+	djot_parser.EmphasisNode:      formatEmphasis,
+	djot_parser.StrongNode:        formatStrong,
+	djot_parser.LinkNode:          formatLink,
+	djot_parser.HeadingNode:       formatHeading,
 }
 
-func Format(ast []TreeNode[DjotNode]) string {
+func Format(ast []djot_parser.TreeNode[djot_parser.DjotNode]) string {
 	writer := NewWriter()
-	ctx := ConversionContext[*Writer]{
+	ctx := djot_parser.ConversionContext[*Writer]{
 		Format:   "djot",
 		Registry: defaultRegistry,
 	}
 	ctx.ConvertDjot(writer, ast...)
+
 	return writer.String()
 }
 
 // FormatWithConfig formats the djot AST with custom SLW configuration
-func FormatWithConfig(ast []TreeNode[DjotNode], slwConfig *slw.Config) string {
+func FormatWithConfig(ast []djot_parser.TreeNode[djot_parser.DjotNode], slwConfig *slw.Config) string {
 	writer := NewWriterWithConfig(slwConfig)
-	ctx := ConversionContext[*Writer]{
+	ctx := djot_parser.ConversionContext[*Writer]{
 		Format:   "djot",
 		Registry: defaultRegistry,
 	}
 	ctx.ConvertDjot(writer, ast...)
+
 	return writer.String()
 }

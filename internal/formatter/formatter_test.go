@@ -1,13 +1,15 @@
-package formatter
+package formatter_test
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/KyleKing/djot-fmt/internal/formatter"
 	"github.com/KyleKing/djot-fmt/internal/slw"
 	"github.com/sivukhin/godjot/v2/djot_parser"
 	"github.com/stretchr/testify/assert"
@@ -25,7 +27,7 @@ func TestFormat_SimpleParagraphAST(t *testing.T) {
 		},
 	}
 
-	result := Format(ast)
+	result := formatter.Format(ast)
 	expected := "Hello, world!\n"
 	assert.Equal(t, expected, result)
 }
@@ -40,14 +42,17 @@ type Fixture struct {
 }
 
 // readFixtures reads test fixtures from a file in the format used by mdformat-slw
+//
+//nolint:cyclop // Test fixture parser has inherent complexity from state machine
 func readFixtures(filepath string) ([]Fixture, error) {
 	file, err := os.Open(filepath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("opening fixture file: %w", err)
 	}
 	defer file.Close()
 
 	var fixtures []Fixture
+
 	scanner := bufio.NewScanner(file)
 	lineNum := 0
 
@@ -69,41 +74,52 @@ func readFixtures(filepath string) ([]Fixture, error) {
 		if !scanner.Scan() {
 			break
 		}
+
 		if strings.TrimSpace(scanner.Text()) != "." {
 			continue
 		}
+
 		lineNum++
 
 		// Read input until '.'
 		var inputLines []string
+
 		for scanner.Scan() {
 			lineNum++
+
 			line := scanner.Text()
 			if line == "." {
 				break
 			}
+
 			inputLines = append(inputLines, line)
 		}
 
 		// Read expected until '.'
 		var expectedLines []string
+
 		for scanner.Scan() {
 			lineNum++
+
 			line := scanner.Text()
 			if line == "." {
 				break
 			}
+
 			expectedLines = append(expectedLines, line)
 		}
 
 		// Read options (optional)
 		options := make(map[string]string)
+
 		for scanner.Scan() {
 			lineNum++
+
 			line := strings.TrimSpace(scanner.Text())
 			if line == "" {
 				break
 			}
+
 			if strings.HasPrefix(line, "--") {
 				// Parse option
 				option := strings.TrimPrefix(line, "--")
@@ -122,6 +138,7 @@ func readFixtures(filepath string) ([]Fixture, error) {
 		if len(inputLines) > 0 {
 			input += "\n"
 		}
+
 		expected := strings.Join(expectedLines, "\n")
 		if len(expectedLines) > 0 {
 			expected += "\n"
@@ -136,7 +153,11 @@ func readFixtures(filepath string) ([]Fixture, error) {
 		})
 	}
 
-	return fixtures, scanner.Err()
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("scanning fixture file: %w", err)
+	}
+
+	return fixtures, nil
 }
 
 // configFromOptions creates a SLW Config from fixture options
@@ -168,6 +189,7 @@ func configFromOptions(options map[string]string) *slw.Config {
 
 func TestFormat_BasicFixtures(t *testing.T) {
 	path := filepath.Join("../../testdata/formatter", "basic.txt")
+
 	fixtures, err := readFixtures(path)
 	if err != nil {
 		t.Fatalf("Failed to read fixtures: %v", err)
@@ -176,7 +198,7 @@ func TestFormat_BasicFixtures(t *testing.T) {
 	for _, fixture := range fixtures {
 		t.Run(fixture.Title, func(t *testing.T) {
 			ast := djot_parser.BuildDjotAst([]byte(fixture.Input))
-			result := Format(ast)
+			result := formatter.Format(ast)
 
 			if !assert.Equal(t, fixture.Expected, result) {
 				t.Logf("Fixture: %s (line %d)", fixture.Title, fixture.LineNumber)
@@ -190,6 +212,7 @@ func TestFormat_BasicFixtures(t *testing.T) {
 
 func TestFormat_SLWFixtures(t *testing.T) {
 	path := filepath.Join("../../testdata/formatter", "slw.txt")
+
 	fixtures, err := readFixtures(path)
 	if err != nil {
 		t.Fatalf("Failed to read fixtures: %v", err)
@@ -199,7 +222,7 @@ func TestFormat_SLWFixtures(t *testing.T) {
 		t.Run(fixture.Title, func(t *testing.T) {
 			config := configFromOptions(fixture.Options)
 			ast := djot_parser.BuildDjotAst([]byte(fixture.Input))
-			result := FormatWithConfig(ast, config)
+			result := formatter.FormatWithConfig(ast, config)
 
 			if !assert.Equal(t, fixture.Expected, result) {
 				t.Logf("Fixture: %s (line %d)", fixture.Title, fixture.LineNumber)

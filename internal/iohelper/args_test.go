@@ -1,22 +1,24 @@
-package iohelper
+package iohelper_test
 
 import (
 	"testing"
 
+	"github.com/KyleKing/djot-fmt/internal/iohelper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseArgs(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    []string
-		want    *Options
+		want    *iohelper.Options
 		wantErr bool
 	}{
 		{
 			name: "no args (stdin)",
 			args: []string{},
-			want: &Options{
+			want: &iohelper.Options{
 				SlwMarkers: ".!?",
 				SlwWrap:    88,
 				SlwMinLine: 40,
@@ -25,7 +27,7 @@ func TestParseArgs(t *testing.T) {
 		{
 			name: "input file only",
 			args: []string{"input.djot"},
-			want: &Options{
+			want: &iohelper.Options{
 				InputFile:  "input.djot",
 				SlwMarkers: ".!?",
 				SlwWrap:    88,
@@ -35,7 +37,7 @@ func TestParseArgs(t *testing.T) {
 		{
 			name: "write flag",
 			args: []string{"-w", "file.djot"},
-			want: &Options{
+			want: &iohelper.Options{
 				Write:      true,
 				InputFile:  "file.djot",
 				SlwMarkers: ".!?",
@@ -46,7 +48,7 @@ func TestParseArgs(t *testing.T) {
 		{
 			name: "check flag",
 			args: []string{"-c", "file.djot"},
-			want: &Options{
+			want: &iohelper.Options{
 				Check:      true,
 				InputFile:  "file.djot",
 				SlwMarkers: ".!?",
@@ -57,7 +59,7 @@ func TestParseArgs(t *testing.T) {
 		{
 			name: "output flag",
 			args: []string{"-o", "out.djot", "in.djot"},
-			want: &Options{
+			want: &iohelper.Options{
 				OutputFile: "out.djot",
 				InputFile:  "in.djot",
 				SlwMarkers: ".!?",
@@ -68,7 +70,7 @@ func TestParseArgs(t *testing.T) {
 		{
 			name: "no wrap sentences",
 			args: []string{"--no-wrap-sentences", "file.djot"},
-			want: &Options{
+			want: &iohelper.Options{
 				InputFile:       "file.djot",
 				NoWrapSentences: true,
 				SlwMarkers:      ".!?",
@@ -79,7 +81,7 @@ func TestParseArgs(t *testing.T) {
 		{
 			name: "custom slw markers",
 			args: []string{"--slw-markers", ".!?;", "file.djot"},
-			want: &Options{
+			want: &iohelper.Options{
 				InputFile:  "file.djot",
 				SlwMarkers: ".!?;",
 				SlwWrap:    88,
@@ -89,7 +91,7 @@ func TestParseArgs(t *testing.T) {
 		{
 			name: "custom slw wrap",
 			args: []string{"--slw-wrap", "100", "file.djot"},
-			want: &Options{
+			want: &iohelper.Options{
 				InputFile:  "file.djot",
 				SlwMarkers: ".!?",
 				SlwWrap:    100,
@@ -99,7 +101,7 @@ func TestParseArgs(t *testing.T) {
 		{
 			name: "custom slw min line",
 			args: []string{"--slw-min-line", "0", "file.djot"},
-			want: &Options{
+			want: &iohelper.Options{
 				InputFile:  "file.djot",
 				SlwMarkers: ".!?",
 				SlwWrap:    88,
@@ -130,12 +132,13 @@ func TestParseArgs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ParseArgs(tt.args)
+			got, err := iohelper.ParseArgs(tt.args)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
 			}
-			assert.NoError(t, err)
+
+			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
 		})
 	}

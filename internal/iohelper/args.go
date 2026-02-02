@@ -27,70 +27,100 @@ func ParseArgs(args []string) (*Options, error) {
 		SlwMinLine: 40,
 	}
 
+	var err error
+
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 
-		switch arg {
-		case "-w", "--write":
-			opts.Write = true
-		case "-c", "--check":
-			opts.Check = true
-		case "-o", "--output":
-			if i+1 >= len(args) {
-				return nil, errors.New("-o/--output requires a file argument")
-			}
-			i++
-			opts.OutputFile = args[i]
-		case "--no-wrap-sentences":
-			opts.NoWrapSentences = true
-		case "--slw-markers":
-			if i+1 >= len(args) {
-				return nil, errors.New("--slw-markers requires a value")
-			}
-			i++
-			opts.SlwMarkers = args[i]
-		case "--slw-wrap":
-			if i+1 >= len(args) {
-				return nil, errors.New("--slw-wrap requires a value")
-			}
-			i++
-			val, err := strconv.Atoi(args[i])
+		if strings.HasPrefix(arg, "-") {
+			i, err = parseFlag(arg, args, i, opts)
 			if err != nil {
-				return nil, fmt.Errorf("--slw-wrap requires an integer: %w", err)
+				return nil, err
 			}
-			opts.SlwWrap = val
-		case "--slw-min-line":
-			if i+1 >= len(args) {
-				return nil, errors.New("--slw-min-line requires a value")
+		} else {
+			if err := setInputFile(arg, opts); err != nil {
+				return nil, err
 			}
-			i++
-			val, err := strconv.Atoi(args[i])
-			if err != nil {
-				return nil, fmt.Errorf("--slw-min-line requires an integer: %w", err)
-			}
-			opts.SlwMinLine = val
-		default:
-			if strings.HasPrefix(arg, "-") {
-				return nil, fmt.Errorf("unknown flag: %s", arg)
-			}
-			if opts.InputFile != "" {
-				return nil, errors.New("multiple input files not supported")
-			}
-			opts.InputFile = arg
 		}
 	}
 
-	if opts.Write && opts.OutputFile != "" {
-		return nil, errors.New("cannot use both -w and -o")
-	}
-
-	if opts.Write && opts.InputFile == "" {
-		return nil, errors.New("-w requires an input file (cannot use with stdin)")
-	}
-
-	if opts.Check && (opts.Write || opts.OutputFile != "") {
-		return nil, errors.New("-c cannot be used with -w or -o")
+	if err := validateOptions(opts); err != nil {
+		return nil, err
 	}
 
 	return opts, nil
+}
+
+func parseFlag(flag string, args []string, i int, opts *Options) (int, error) {
+	switch flag {
+	case "-w", "--write":
+		opts.Write = true
+	case "-c", "--check":
+		opts.Check = true
+	case "-o", "--output":
+		return parseStringFlag(flag, args, i, &opts.OutputFile)
+	case "--no-wrap-sentences":
+		opts.NoWrapSentences = true
+	case "--slw-markers":
+		return parseStringFlag(flag, args, i, &opts.SlwMarkers)
+	case "--slw-wrap":
+		return parseIntFlag(flag, args, i, &opts.SlwWrap)
+	case "--slw-min-line":
+		return parseIntFlag(flag, args, i, &opts.SlwMinLine)
+	default:
+		return i, fmt.Errorf("unknown flag: %s", flag)
+	}
+
+	return i, nil
+}
+
+func parseStringFlag(flag string, args []string, i int, target *string) (int, error) {
+	if i+1 >= len(args) {
+		return i, fmt.Errorf("%s requires a value", flag)
+	}
+
+	*target = args[i+1]
+
+	return i + 1, nil
+}
+
+func parseIntFlag(flag string, args []string, i int, target *int) (int, error) {
+	if i+1 >= len(args) {
+		return i, fmt.Errorf("%s requires a value", flag)
+	}
+
+	val, err := strconv.Atoi(args[i+1])
+	if err != nil {
+		return i, fmt.Errorf("%s requires an integer: %w", flag, err)
+	}
+
+	*target = val
+
+	return i + 1, nil
+}
+
+func setInputFile(file string, opts *Options) error {
+	if opts.InputFile != "" {
+		return errors.New("multiple input files not supported")
+	}
+
+	opts.InputFile = file
+
+	return nil
+}
+
+func validateOptions(opts *Options) error {
+	if opts.Write && opts.OutputFile != "" {
+		return errors.New("cannot use both -w and -o")
+	}
+
+	if opts.Write && opts.InputFile == "" {
+		return errors.New("-w requires an input file (cannot use with stdin)")
+	}
+
+	if opts.Check && (opts.Write || opts.OutputFile != "") {
+		return errors.New("-c cannot be used with -w or -o")
+	}
+
+	return nil
 }
