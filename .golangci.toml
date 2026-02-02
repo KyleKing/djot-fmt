@@ -4,7 +4,7 @@
 [linters]
 default = "standard"
 disabled = [
-  "forbidigo", # forbids identifiers matched by reg exps
+  "forbidigo" # forbids identifiers matched by reg exps
 ]
 enable = [
   "asciicheck",
@@ -44,7 +44,7 @@ enable = [
   "unused",
   "wastedassign",
   "wrapcheck",
-  "wsl",
+  "wsl"
 ]
 relative-path-mode = "gomod"
 

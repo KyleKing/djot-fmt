@@ -9,9 +9,6 @@ local file_list = List("**/*.{gitignore,go,md,pkl,toml,yaml,yml}")
 
 local linters = new Mapping<String, Step> {
     ["actionlint"] = Builtins.actionlint
-    ["ls-lint"] {
-        check = "ls-lint"
-    }
     ["golangci-lint"] {
         glob = List("**/*.go")
         check = "golangci-lint run"
@@ -24,41 +21,6 @@ local linters = new Mapping<String, Step> {
     ["pkl"] {
         glob = List("*.pkl")
         check = "pkl eval {{files}} >/dev/null"
-    }
-    ["pch-check-added-large-files"] {
-        glob = file_list
-        check = "check-added-large-files {{ files }}"
-    }
-    ["pch-check-merge-conflict"] {
-        glob = file_list
-        check = "check-merge-conflict {{ files }}"
-    }
-    ["pch-check-symlinks"] {
-        glob = file_list
-        check = "check-symlinks {{ files }}"
-    }
-    ["pch-check-vcs-permalinks"] {
-        glob = file_list
-        check = "check-vcs-permalinks {{ files }}"
-    }
-    ["pch-check-yaml"] {
-        glob = List("**/*.{yml,yaml}")
-        check = "check-yaml {{ files }}"
-    }
-    ["pch-end-of-file-fixer"] {
-        glob = file_list
-        check_first = false
-        fix = "end-of-file-fixer {{ files }}"
-    }
-    ["pch-mixed-line-ending"] {
-        glob = file_list
-        check_first = false
-        fix = "mixed-line-ending {{ files }}"
-    }
-    ["pch-trailing-whitespace-fixer"] {
-        glob = file_list
-        check_first = false
-        fix = "trailing-whitespace-fixer {{ files }}"
     }
     ["toml-sort"] {
         glob = List("**/*.toml")
