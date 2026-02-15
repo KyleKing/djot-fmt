@@ -12,8 +12,8 @@ import (
 	"github.com/sivukhin/godjot/v2/djot_parser"
 )
 
-func ProcessFile(opts *Options) error {
-	input, err := readInput(opts)
+func ProcessFile(opts *Options, inputFile string) error {
+	input, err := readInput(inputFile)
 	if err != nil {
 		return err
 	}
@@ -32,14 +32,14 @@ func ProcessFile(opts *Options) error {
 	formatted := formatter.FormatWithConfig(ast, slwConfig)
 
 	if opts.Check {
-		return checkFormatted(input, formatted, opts.InputFile)
+		return checkFormatted(input, formatted, inputFile)
 	}
 
-	return writeOutput(formatted, opts)
+	return writeOutput(formatted, opts, inputFile)
 }
 
-func readInput(opts *Options) ([]byte, error) {
-	if opts.InputFile == "" || opts.InputFile == "-" {
+func readInput(inputFile string) ([]byte, error) {
+	if inputFile == "" || inputFile == "-" {
 		data, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			return nil, fmt.Errorf("reading from stdin: %w", err)
@@ -48,7 +48,7 @@ func readInput(opts *Options) ([]byte, error) {
 		return data, nil
 	}
 
-	data, err := os.ReadFile(opts.InputFile)
+	data, err := os.ReadFile(inputFile)
 	if err != nil {
 		return nil, fmt.Errorf("reading input file: %w", err)
 	}
@@ -56,11 +56,11 @@ func readInput(opts *Options) ([]byte, error) {
 	return data, nil
 }
 
-func writeOutput(formatted string, opts *Options) error {
+func writeOutput(formatted string, opts *Options, inputFile string) error {
 	output := []byte(formatted)
 
 	if opts.Write {
-		if err := os.WriteFile(opts.InputFile, output, 0600); err != nil {
+		if err := os.WriteFile(inputFile, output, 0600); err != nil {
 			return fmt.Errorf("writing to file: %w", err)
 		}
 

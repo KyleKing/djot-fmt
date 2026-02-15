@@ -8,7 +8,7 @@ import (
 )
 
 type Options struct {
-	InputFile  string
+	InputFiles []string
 	OutputFile string
 	Write      bool
 	Check      bool
@@ -100,12 +100,7 @@ func parseIntFlag(flag string, args []string, i int, target *int) (int, error) {
 }
 
 func setInputFile(file string, opts *Options) error {
-	if opts.InputFile != "" {
-		return errors.New("multiple input files not supported")
-	}
-
-	opts.InputFile = file
-
+	opts.InputFiles = append(opts.InputFiles, file)
 	return nil
 }
 
@@ -114,8 +109,12 @@ func validateOptions(opts *Options) error {
 		return errors.New("cannot use both -w and -o")
 	}
 
-	if opts.Write && opts.InputFile == "" {
-		return errors.New("-w requires an input file (cannot use with stdin)")
+	if opts.Write && len(opts.InputFiles) == 0 {
+		return errors.New("-w requires at least one input file (cannot use with stdin)")
+	}
+
+	if opts.OutputFile != "" && len(opts.InputFiles) > 1 {
+		return errors.New("-o can only be used with a single input file")
 	}
 
 	if opts.Check && (opts.Write || opts.OutputFile != "") {

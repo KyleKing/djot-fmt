@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -37,8 +38,32 @@ func run() error {
 		return fmt.Errorf("parsing arguments: %w", err)
 	}
 
-	if err := iohelper.ProcessFile(opts); err != nil {
-		return fmt.Errorf("processing file: %w", err)
+	// If no input files specified, process stdin
+	if len(opts.InputFiles) == 0 {
+		if err := iohelper.ProcessFile(opts, ""); err != nil {
+			return fmt.Errorf("processing stdin: %w", err)
+		}
+
+		return nil
+	}
+
+	// Process each input file
+	var hasError bool
+
+	for _, file := range opts.InputFiles {
+		if err := iohelper.ProcessFile(opts, file); err != nil {
+			fmt.Fprintf(os.Stderr, "%s: %v\n", file, err)
+
+			hasError = true
+			// Continue processing remaining files in check mode
+			if !opts.Check {
+				return fmt.Errorf("processing %s: %w", file, err)
+			}
+		}
+	}
+
+	if hasError {
+		return errors.New("one or more files had errors")
 	}
 
 	return nil
@@ -48,15 +73,15 @@ func printHelp() {
 	fmt.Print(`djot-fmt - Automatically format djot files
 
 Usage:
-  djot-fmt [options] [file]
+  djot-fmt [options] [files...]
 
 Arguments:
-  file               File to format (default: stdin)
+  files              Files to format (default: stdin)
 
 Options:
   -w, --write        Write result to source file instead of stdout
-  -c, --check        Check if file is formatted (exit 1 if not)
-  -o, --output FILE  Write output to FILE instead of stdout
+  -c, --check        Check if files are formatted (exit 1 if not)
+  -o, --output FILE  Write output to FILE instead of stdout (single input file only)
   -h, --help         Show this help message
   -v, --version      Show version information
 
@@ -73,8 +98,11 @@ Examples:
   # Format file and write back
   djot-fmt -w file.djot
 
-  # Check if file is formatted
-  djot-fmt -c file.djot
+  # Format multiple files and write back
+  djot-fmt -w file1.djot file2.djot file3.djot
+
+  # Check if files are formatted
+  djot-fmt -c file1.djot file2.djot
 
   # Format to different file
   djot-fmt -o output.djot input.djot

@@ -28,7 +28,17 @@ func TestParseArgs(t *testing.T) {
 			name: "input file only",
 			args: []string{"input.djot"},
 			want: &iohelper.Options{
-				InputFile:  "input.djot",
+				InputFiles: []string{"input.djot"},
+				SlwMarkers: ".!?",
+				SlwWrap:    88,
+				SlwMinLine: 40,
+			},
+		},
+		{
+			name: "multiple input files",
+			args: []string{"file1.djot", "file2.djot", "file3.djot"},
+			want: &iohelper.Options{
+				InputFiles: []string{"file1.djot", "file2.djot", "file3.djot"},
 				SlwMarkers: ".!?",
 				SlwWrap:    88,
 				SlwMinLine: 40,
@@ -39,7 +49,18 @@ func TestParseArgs(t *testing.T) {
 			args: []string{"-w", "file.djot"},
 			want: &iohelper.Options{
 				Write:      true,
-				InputFile:  "file.djot",
+				InputFiles: []string{"file.djot"},
+				SlwMarkers: ".!?",
+				SlwWrap:    88,
+				SlwMinLine: 40,
+			},
+		},
+		{
+			name: "write flag with multiple files",
+			args: []string{"-w", "file1.djot", "file2.djot"},
+			want: &iohelper.Options{
+				Write:      true,
+				InputFiles: []string{"file1.djot", "file2.djot"},
 				SlwMarkers: ".!?",
 				SlwWrap:    88,
 				SlwMinLine: 40,
@@ -50,7 +71,18 @@ func TestParseArgs(t *testing.T) {
 			args: []string{"-c", "file.djot"},
 			want: &iohelper.Options{
 				Check:      true,
-				InputFile:  "file.djot",
+				InputFiles: []string{"file.djot"},
+				SlwMarkers: ".!?",
+				SlwWrap:    88,
+				SlwMinLine: 40,
+			},
+		},
+		{
+			name: "check flag with multiple files",
+			args: []string{"-c", "file1.djot", "file2.djot"},
+			want: &iohelper.Options{
+				Check:      true,
+				InputFiles: []string{"file1.djot", "file2.djot"},
 				SlwMarkers: ".!?",
 				SlwWrap:    88,
 				SlwMinLine: 40,
@@ -61,7 +93,7 @@ func TestParseArgs(t *testing.T) {
 			args: []string{"-o", "out.djot", "in.djot"},
 			want: &iohelper.Options{
 				OutputFile: "out.djot",
-				InputFile:  "in.djot",
+				InputFiles: []string{"in.djot"},
 				SlwMarkers: ".!?",
 				SlwWrap:    88,
 				SlwMinLine: 40,
@@ -71,7 +103,7 @@ func TestParseArgs(t *testing.T) {
 			name: "no wrap sentences",
 			args: []string{"--no-wrap-sentences", "file.djot"},
 			want: &iohelper.Options{
-				InputFile:       "file.djot",
+				InputFiles:      []string{"file.djot"},
 				NoWrapSentences: true,
 				SlwMarkers:      ".!?",
 				SlwWrap:         88,
@@ -82,7 +114,7 @@ func TestParseArgs(t *testing.T) {
 			name: "custom slw markers",
 			args: []string{"--slw-markers", ".!?;", "file.djot"},
 			want: &iohelper.Options{
-				InputFile:  "file.djot",
+				InputFiles: []string{"file.djot"},
 				SlwMarkers: ".!?;",
 				SlwWrap:    88,
 				SlwMinLine: 40,
@@ -92,7 +124,7 @@ func TestParseArgs(t *testing.T) {
 			name: "custom slw wrap",
 			args: []string{"--slw-wrap", "100", "file.djot"},
 			want: &iohelper.Options{
-				InputFile:  "file.djot",
+				InputFiles: []string{"file.djot"},
 				SlwMarkers: ".!?",
 				SlwWrap:    100,
 				SlwMinLine: 40,
@@ -102,7 +134,7 @@ func TestParseArgs(t *testing.T) {
 			name: "custom slw min line",
 			args: []string{"--slw-min-line", "0", "file.djot"},
 			want: &iohelper.Options{
-				InputFile:  "file.djot",
+				InputFiles: []string{"file.djot"},
 				SlwMarkers: ".!?",
 				SlwWrap:    88,
 				SlwMinLine: 0,
@@ -121,6 +153,11 @@ func TestParseArgs(t *testing.T) {
 		{
 			name:    "check and write",
 			args:    []string{"-c", "-w", "file.djot"},
+			wantErr: true,
+		},
+		{
+			name:    "output with multiple files",
+			args:    []string{"-o", "out.djot", "file1.djot", "file2.djot"},
 			wantErr: true,
 		},
 		{

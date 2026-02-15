@@ -27,8 +27,14 @@ cat file.djot | djot-fmt
 # Format file and write back
 djot-fmt -w file.djot
 
+# Format multiple files and write back
+djot-fmt -w file1.djot file2.djot file3.djot
+
 # Check if file is formatted (exit 1 if not)
 djot-fmt -c file.djot
+
+# Check multiple files
+djot-fmt -c file1.djot file2.djot file3.djot
 
 # Format to different file
 djot-fmt -o output.djot input.djot
@@ -52,9 +58,9 @@ find . -name "*.djot" -exec djot-fmt -w {} \;
 
 ### Options
 
-- `-w, --write` - Write result to source file instead of stdout
-- `-c, --check` - Check if file is formatted (exit 1 if not)
-- `-o, --output FILE` - Write output to FILE instead of stdout
+- `-w, --write` - Write result to source file(s) instead of stdout
+- `-c, --check` - Check if file(s) are formatted (exit 1 if not)
+- `-o, --output FILE` - Write output to FILE instead of stdout (single input file only)
 - `-h, --help` - Show help message
 - `-v, --version` - Show version information
 
