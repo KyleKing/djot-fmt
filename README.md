@@ -18,6 +18,8 @@ go install github.com/KyleKing/djot-fmt@latest
 
 ## Usage
 
+### Basic Usage
+
 ```sh
 # Format stdin to stdout
 cat file.djot | djot-fmt
@@ -32,6 +34,22 @@ djot-fmt -c file.djot
 djot-fmt -o output.djot input.djot
 ```
 
+### Batch Processing
+
+```sh
+# Format all .djot files in current directory
+fd -e djot -x djot-fmt -w
+
+# Format all .djot files in specific directory
+fd -e djot . content/ -x djot-fmt -w
+
+# Check formatting for all .djot files
+fd -e djot -x djot-fmt -c
+
+# Using find (alternative to fd)
+find . -name "*.djot" -exec djot-fmt -w {} \;
+```
+
 ### Options
 
 - `-w, --write` - Write result to source file instead of stdout
@@ -39,6 +57,13 @@ djot-fmt -o output.djot input.djot
 - `-o, --output FILE` - Write output to FILE instead of stdout
 - `-h, --help` - Show help message
 - `-v, --version` - Show version information
+
+### SLW (Semantic Line Wrap) Options
+
+- `--no-wrap-sentences` - Disable semantic line wrapping
+- `--slw-markers TEXT` - Characters that mark sentence endings (default: ".!?")
+- `--slw-wrap INTEGER` - Maximum line width for wrapping (default: 88, set to 0 to disable)
+- `--slw-min-line INTEGER` - Minimum line length before wrapping (default: 40, set to 0 for aggressive mode)
 
 ## Development
 
