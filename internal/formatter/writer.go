@@ -80,7 +80,7 @@ func (w *Writer) SetInListItem(inList bool) {
 }
 
 func (w *Writer) NeedsBlankLine() bool {
-	return w.lastBlock == BlockTypeParagraph || w.lastBlock == BlockTypeList
+	return w.lastBlock == BlockTypeParagraph || w.lastBlock == BlockTypeList || w.lastBlock == BlockTypeHeading
 }
 
 func (w *Writer) InListItem() bool {

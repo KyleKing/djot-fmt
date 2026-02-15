@@ -9,6 +9,10 @@ func formatDocument(_ djot_parser.ConversionState[*Writer], next func(djot_parse
 	next(nil)
 }
 
+func formatSection(_ djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	next(nil)
+}
+
 func formatText(state djot_parser.ConversionState[*Writer], _ func(djot_parser.Children)) {
 	text := string(state.Node.Text)
 
@@ -129,24 +133,25 @@ func formatLink(state djot_parser.ConversionState[*Writer], next func(djot_parse
 	state.Writer.WriteString("](" + url + ")")
 }
 
-func formatHeading(state djot_parser.ConversionState[*Writer], _ func(djot_parser.Children)) {
-	level := int(state.Node.Attributes.Get("level")[0] - '0')
+func formatHeading(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	w := state.Writer
 
 	if w.NeedsBlankLine() {
 		w.WriteString("\n\n")
 	}
 
-	for range level {
-		w.WriteString("#")
-	}
-
-	w.WriteString(" " + string(state.Node.Text) + "\n")
+	// The level is stored in the $HeadingLevelKey attribute as "#" characters
+	levelMarker := state.Node.Attributes.Get("$HeadingLevelKey")
+	w.WriteString(levelMarker)
+	w.WriteString(" ")
+	next(nil)
+	w.WriteString("\n")
 	w.SetLastBlockType(BlockTypeHeading)
 }
 
 var defaultRegistry = map[djot_parser.DjotNode]djot_parser.Conversion[*Writer]{
 	djot_parser.DocumentNode:      formatDocument,
+	djot_parser.SectionNode:       formatSection,
 	djot_parser.TextNode:          formatText,
 	djot_parser.ParagraphNode:     formatParagraph,
 	djot_parser.UnorderedListNode: formatUnorderedList,

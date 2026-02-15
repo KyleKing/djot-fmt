@@ -131,3 +131,29 @@ task with inline formatting
 .
 - [ ] Inline _formatting_ *bold*
 .
+
+paragraph before list
+.
+A paragraph.
+
+- item 1
+- item 2
+.
+A paragraph.
+
+
+- item 1
+- item 2
+.
+
+heading before paragraph
+.
+# Heading
+
+A paragraph.
+.
+# Heading
+
+A paragraph.
+.
+
