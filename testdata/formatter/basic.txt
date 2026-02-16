@@ -306,6 +306,32 @@ This is a warning.
 :::
 .
 
+div with custom attributes
+.
+{ rating=5 }
+:::
+Content
+:::
+.
+{rating="5"}
+:::
+Content
+:::
+.
+
+div with class and custom attributes
+.
+{ rating=5 class=info }
+:::
+Content
+:::
+.
+{.info rating="5"}
+:::
+Content
+:::
+.
+
 simple definition list
 .
 Term 1

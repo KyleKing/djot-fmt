@@ -225,13 +225,20 @@ func formatCode(state djot_parser.ConversionState[*Writer], next func(djot_parse
 
 	class := state.Node.Attributes.Get("class")
 
-	w.WriteString("```")
+	if hasNonClassAttributes(state.Node.Attributes) {
+		attrs := formatAttributes(state.Node.Attributes)
+		w.WriteString(attrs)
+		w.WriteString("\n")
+		w.WriteString("```\n")
+	} else {
+		w.WriteString("```")
 
-	if lang, ok := strings.CutPrefix(class, "language-"); ok {
-		w.WriteString(lang)
+		if lang, ok := strings.CutPrefix(class, "language-"); ok {
+			w.WriteString(lang)
+		}
+
+		w.WriteString("\n")
 	}
-
-	w.WriteString("\n")
 
 	next(nil)
 
@@ -265,6 +272,12 @@ func formatQuote(state djot_parser.ConversionState[*Writer], next func(djot_pars
 		w.WriteString("\n")
 	}
 
+	attrs := formatAttributes(state.Node.Attributes)
+	if attrs != "" {
+		w.WriteString(attrs)
+		w.WriteString("\n")
+	}
+
 	w.PushLinePrefix("> ")
 
 	previousBlockType := w.GetLastBlockType()
@@ -286,14 +299,21 @@ func formatDiv(state djot_parser.ConversionState[*Writer], next func(djot_parser
 
 	class := state.Node.Attributes.Get("class")
 
-	w.WriteString(":::")
+	if hasNonClassAttributes(state.Node.Attributes) {
+		attrs := formatAttributes(state.Node.Attributes)
+		w.WriteString(attrs)
+		w.WriteString("\n")
+		w.WriteString(":::\n")
+	} else {
+		w.WriteString(":::")
 
-	if class != "" {
-		w.WriteString(" ")
-		w.WriteString(class)
+		if class != "" {
+			w.WriteString(" ")
+			w.WriteString(class)
+		}
+
+		w.WriteString("\n")
 	}
-
-	w.WriteString("\n")
 
 	previousBlockType := w.GetLastBlockType()
 	w.SetLastBlockType(BlockTypeNone)
@@ -384,6 +404,12 @@ func formatTable(state djot_parser.ConversionState[*Writer], next func(djot_pars
 		w.WriteString("\n")
 	}
 
+	attrs := formatAttributes(state.Node.Attributes)
+	if attrs != "" {
+		w.WriteString(attrs)
+		w.WriteString("\n")
+	}
+
 	next(nil)
 
 	w.SetLastBlockType(BlockTypeParagraph)
@@ -461,6 +487,20 @@ func shouldSkipAttribute(key string) bool {
 	}
 
 	return skippedAttributes[key]
+}
+
+func hasNonClassAttributes(attrs tokenizer.Attributes) bool {
+	for _, key := range attrs.Keys {
+		if shouldSkipAttribute(key) {
+			continue
+		}
+
+		if key != "class" {
+			return true
+		}
+	}
+
+	return false
 }
 
 func formatAttributes(attrs tokenizer.Attributes) string {

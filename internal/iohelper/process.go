@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/KyleKing/djot-fmt/internal/formatter"
 	"github.com/KyleKing/djot-fmt/internal/slw"
+	"github.com/pmezard/go-difflib/difflib"
 	"github.com/sivukhin/godjot/v2/djot_parser"
 )
 
@@ -96,10 +98,23 @@ func checkFormatted(original []byte, formatted string, filename string) error {
 		return nil
 	}
 
-	if filename != "" {
-		fmt.Fprintf(os.Stderr, "%s: not formatted\n", filename)
-	} else {
-		fmt.Fprintln(os.Stderr, "input: not formatted")
+	displayName := filename
+	if displayName == "" {
+		displayName = "stdin"
+	}
+
+	fmt.Fprintf(os.Stderr, "%s: not formatted\n", displayName)
+
+	diff, err := difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
+		A:        difflib.SplitLines(string(original)),
+		B:        difflib.SplitLines(formatted),
+		FromFile: displayName,
+		ToFile:   displayName + " (formatted)",
+		Context:  3,
+	})
+
+	if err == nil && diff != "" {
+		fmt.Fprintln(os.Stderr, strings.TrimSpace(diff))
 	}
 
 	return errors.New("file not formatted")
