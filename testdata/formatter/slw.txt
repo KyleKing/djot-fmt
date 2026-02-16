@@ -32,3 +32,42 @@ Short sentence.
 Another one.
 .
 --slw-min-line=0
+SLW in blockquote
+.
+> This is a long sentence inside a blockquote. It should wrap properly! Does it work correctly?
+.
+> This is a long sentence inside a blockquote.
+> It should wrap properly!
+> Does it work correctly?
+.
+
+SLW in nested blockquote
+.
+> Outer quote with a long sentence. It should wrap properly!
+>
+> > Inner quote with another long sentence. It should also wrap correctly!
+.
+> Outer quote with a long sentence.
+> It should wrap properly!
+>
+> > Inner quote with another long sentence.
+> > It should also wrap correctly!
+.
+
+SLW in definition list
+.
+Term with definition
+: This is a long definition that exceeds the minimum length. It should be wrapped properly! Does it work?
+.
+Term with definition
+: This is a long definition that exceeds the minimum length.
+It should be wrapped properly!
+Does it work?
+.
+
+SLW in list items - currently not supported
+.
+- This is a long list item that exceeds the minimum length. It should be wrapped properly! Does it work correctly?
+.
+- This is a long list item that exceeds the minimum length. It should be wrapped properly! Does it work correctly?
+.

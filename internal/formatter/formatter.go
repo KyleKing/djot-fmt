@@ -1,6 +1,8 @@
 package formatter
 
 import (
+	"strings"
+
 	"github.com/KyleKing/djot-fmt/internal/slw"
 	"github.com/sivukhin/godjot/v2/djot_parser"
 	"github.com/sivukhin/godjot/v2/djot_tokenizer"
@@ -100,7 +102,13 @@ func formatListItem(state djot_parser.ConversionState[*Writer], next func(djot_p
 	if state.Parent != nil {
 		switch state.Parent.Type {
 		case djot_parser.OrderedListNode:
-			marker = "1. "
+			// Preserve ordered list style (1., a., A., i., I.)
+			listStyle := state.Parent.Attributes.Get("type")
+			if listStyle == "" {
+				listStyle = "1"
+			}
+
+			marker = listStyle + ". "
 		case djot_parser.TaskListNode:
 			class := state.Node.Attributes.Get("class")
 			if class == "checked" {
@@ -112,7 +120,10 @@ func formatListItem(state djot_parser.ConversionState[*Writer], next func(djot_p
 	}
 
 	w.WriteIndent().WriteString(marker)
-	w.IncreaseIndent()
+
+	// Push indent matching marker width for proper alignment
+	indent := strings.Repeat(" ", len(marker))
+	w.PushIndent(indent)
 	w.SetInListItem(true)
 
 	// Reset block type so that the first paragraph in the list item
@@ -129,7 +140,7 @@ func formatListItem(state djot_parser.ConversionState[*Writer], next func(djot_p
 
 	// Restore the block type for proper spacing after the list item
 	w.SetLastBlockType(previousBlockType)
-	w.DecreaseIndent()
+	w.PopIndent()
 	w.SetInListItem(false)
 }
 

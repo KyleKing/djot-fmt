@@ -76,8 +76,8 @@ nested ordered list - all items normalized
 .
 1. First
 
-  1. Nested
-  1. Items
+   1. Nested
+   1. Items
 .
 
 non-standard numbering gets normalized
@@ -375,4 +375,40 @@ loose task list
 - [x] checked
 
 - [ ] another
+.
+
+alphabetical lowercase ordered list
+.
+a. Alpha
+b. Bravo
+.
+a. Alpha
+a. Bravo
+.
+
+alphabetical uppercase ordered list
+.
+A. First
+B. Second
+.
+A. First
+A. Second
+.
+
+roman numeral lowercase ordered list
+.
+i. First
+ii. Second
+.
+a. First
+a. Second
+.
+
+roman numeral uppercase ordered list
+.
+I. First
+II. Second
+.
+A. First
+A. Second
 .

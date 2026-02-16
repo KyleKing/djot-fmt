@@ -17,7 +17,7 @@ const (
 
 type Writer struct {
 	output       strings.Builder
-	indentLevel  int
+	indentStack  []string // Stack of indent strings for nested lists
 	lastBlock    BlockType
 	inListItem   bool
 	lineStart    bool
@@ -91,24 +91,34 @@ func (w *Writer) applyPrefixAfterNewline(index int, char rune, s string, prefix 
 }
 
 func (w *Writer) WriteIndent() *Writer {
-	for range w.indentLevel {
-		w.output.WriteString("  ")
+	for _, indent := range w.indentStack {
+		w.output.WriteString(indent)
 	}
 
 	return w
 }
 
+func (w *Writer) PushIndent(indent string) *Writer {
+	w.indentStack = append(w.indentStack, indent)
+	return w
+}
+
+func (w *Writer) PopIndent() *Writer {
+	if len(w.indentStack) > 0 {
+		w.indentStack = w.indentStack[:len(w.indentStack)-1]
+	}
+
+	return w
+}
+
+// IncreaseIndent provides backward compatibility for fixed 2-space indentation
 func (w *Writer) IncreaseIndent() *Writer {
-	w.indentLevel++
-	return w
+	return w.PushIndent("  ")
 }
 
+// DecreaseIndent provides backward compatibility
 func (w *Writer) DecreaseIndent() *Writer {
-	if w.indentLevel > 0 {
-		w.indentLevel--
-	}
-
-	return w
+	return w.PopIndent()
 }
 
 func (w *Writer) SetLastBlockType(t BlockType) {

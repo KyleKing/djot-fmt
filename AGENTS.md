@@ -91,6 +91,16 @@ The project enforces strict linting rules. Ensure code passes all linters before
 - Extract helper functions to reduce complexity when needed
 - Break down complex conditionals and loops into smaller functions
 
+**gosec**:
+- File permissions for `os.WriteFile` must be 0600 or less (not 0644)
+- Follow security best practices for file operations
+
+**testpackage**:
+- Test files should use `package <name>_test` instead of `package <name>`
+- This enforces testing the public API and prevents accessing private internals
+- Import the package explicitly (e.g., `import "github.com/KyleKing/djot-fmt/internal/formatter"`)
+- Note: Module path uses capital K in `KyleKing` (check go.mod for correct capitalization)
+
 ## Common Tasks
 
 ### Adding Support for New Node Type
