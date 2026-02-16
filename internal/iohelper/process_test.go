@@ -10,11 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestProcessFile_UnsupportedNodeReturnsError(t *testing.T) {
+func TestProcessFile_CodeBlockSupported(t *testing.T) {
 	tmpDir := t.TempDir()
 	inputFile := filepath.Join(tmpDir, "test.djot")
 
-	err := os.WriteFile(inputFile, []byte("```\ncode block\n```\n"), 0600)
+	input := "```\ncode block\n```\n"
+	err := os.WriteFile(inputFile, []byte(input), 0600)
 	require.NoError(t, err)
 
 	opts := &iohelper.Options{
@@ -26,12 +27,11 @@ func TestProcessFile_UnsupportedNodeReturnsError(t *testing.T) {
 	}
 
 	err = iohelper.ProcessFile(opts, inputFile)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "unsupported node type")
+	require.NoError(t, err, "code blocks are now supported and should not error")
 
-	original, readErr := os.ReadFile(inputFile)
+	result, readErr := os.ReadFile(inputFile)
 	require.NoError(t, readErr)
-	assert.Equal(t, "```\ncode block\n```\n", string(original), "file should not be modified on error")
+	assert.Equal(t, input, string(result))
 }
 
 func TestProcessFile_Write(t *testing.T) {

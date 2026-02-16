@@ -6,21 +6,17 @@ Comprehensive plan to address every known bug, testing gap, and missing feature 
 
 ## 1. Registry Not Wired to Phase 1 Handlers
 
-**Status**: Bug (implemented handlers exist but aren't registered)
+**Status**: ✅ RESOLVED
 
 **Problem**: `formatVerbatim`, `formatDelete`, `formatInsert`, `formatHighlighted`, `formatSubscript`, `formatSuperscript`, `formatLineBreak`, `formatImage`, `formatSpan`, and `formatSymbols` are defined in `formatter.go` but the registry still maps all of them to `formatUnsupported`.
 
-**Fix**:
-- Update `defaultRegistry` to point each inline node type to its real handler
-- Update `TestFormat_UnsupportedNodePanics` to remove "inline code" and "image" cases (they will no longer panic)
-- Add fixture tests for each newly-wired handler
+**Resolution**:
+- ✅ All handlers are now registered in `defaultRegistry`
+- ✅ `formatUnsupported` has been removed (was dead code)
+- ✅ Tests updated: `TestFormat_UnsupportedNodePanics` renamed to `TestFormat_AllNodeTypesSupported`
+- ✅ Fixture tests added in `testdata/formatter/inline.txt`
 
-**Files**:
-- `internal/formatter/formatter.go` -- update registry entries
-- `internal/formatter/formatter_test.go` -- update panic test, add new cases
-- `testdata/formatter/basic.txt` -- add fixture cases for inline code, delete, insert, highlight, subscript, superscript, line break, image, span, symbols
-
-**Test fixtures to add** (in `basic.txt`):
+**Original test fixtures to add** (in `basic.txt`):
 
 ```
 inline code

@@ -15,19 +15,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFormat_UnsupportedNodePanics(t *testing.T) {
-	unsupportedInputs := []struct {
+// TestFormat_AllNodeTypesSupported verifies that all current djot node types
+// are supported. If godjot adds new node types in the future, they will cause
+// a panic which will be caught by the panic recovery in ProcessFile.
+func TestFormat_AllNodeTypesSupported(t *testing.T) {
+	// All node types are now supported - this test documents that fact
+	// and can be extended with specific node type coverage checks if needed
+	supportedInputs := []struct {
 		name  string
 		input string
 	}{
-		// No unsupported types tested yet - add when implementing definition lists
+		{"inline code", "`code`\n"},
+		{"code block", "```\ncode\n```\n"},
+		{"table", "| header |\n|---|\n| cell |\n"},
+		{"definition list", "term\n: definition\n"},
+		{"blockquote", "> quote\n"},
+		{"thematic break", "***\n"},
+		{"reference", "[ref]: https://example.com\n"},
 	}
 
-	for _, tt := range unsupportedInputs {
+	for _, tt := range supportedInputs {
 		t.Run(tt.name, func(t *testing.T) {
 			ast := djot_parser.BuildDjotAst([]byte(tt.input))
-
-			assert.Panics(t, func() { formatter.Format(ast) })
+			// Should not panic
+			assert.NotPanics(t, func() { formatter.Format(ast) })
 		})
 	}
 }
