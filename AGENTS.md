@@ -67,7 +67,7 @@ Follow Go best practices from `GO_BEST_PRACTICES.md`:
 - Table-driven tests
 - Small, single-responsibility functions
 - Explicit error handling with context wrapping
-- No dot imports (except in formatter.go for brevity)
+- No dot imports
 
 ### Linting Requirements
 
@@ -140,16 +140,7 @@ Build with:
 GOWORK=off go build -o djot-fmt
 ```
 
-## Future Enhancements
-
-Potential areas for expansion:
-- Support for all djot node types (ordered lists, tables, code blocks, etc.)
-- Configurable formatting options (indentation width, line wrapping)
-- Semantic line wrapping integration
-- Code block formatting
-
 ## Resources
 
 - [djot specification](https://htmlpreview.github.io/?https://github.com/jgm/djot/blob/master/doc/syntax.html)
 - [godjot library](https://github.com/sivukhin/godjot)
-- [Go best practices](GO_BEST_PRACTICES.md)

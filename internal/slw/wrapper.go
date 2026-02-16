@@ -5,23 +5,14 @@ import (
 	"unicode"
 )
 
-// Config holds SLW (Semantic Line Wrap) configuration
 type Config struct {
-	// Enabled controls whether SLW is active
-	Enabled bool
-	// Markers are the characters that mark sentence endings (default: ".!?")
-	Markers string
-	// MinLineLength is the minimum line length before wrapping (default: 40)
-	// Set to 0 for aggressive mode (always wrap after sentences)
+	Enabled       bool
+	Markers       string
 	MinLineLength int
-	// MaxLineWidth is the maximum line width for wrapping (default: 88)
-	// Set to 0 to disable max width wrapping
-	MaxLineWidth int
-	// Abbreviations is a set of abbreviations that shouldn't trigger wrapping
+	MaxLineWidth  int
 	Abbreviations map[string]bool
 }
 
-// DefaultConfig returns the default SLW configuration
 func DefaultConfig() *Config {
 	return &Config{
 		Enabled:       true,
@@ -32,7 +23,6 @@ func DefaultConfig() *Config {
 	}
 }
 
-// getDefaultAbbreviations returns a basic set of common abbreviations
 func getDefaultAbbreviations() map[string]bool {
 	abbrevs := []string{
 		// Titles
@@ -55,7 +45,6 @@ func getDefaultAbbreviations() map[string]bool {
 	return result
 }
 
-// WrapText applies semantic line wrapping to the given text
 func WrapText(text string, config *Config) string {
 	if !config.Enabled || text == "" {
 		return text
@@ -70,7 +59,6 @@ func WrapText(text string, config *Config) string {
 			result.WriteString("\n")
 		}
 
-		// Skip empty lines or very short lines
 		if len(strings.TrimSpace(line)) == 0 {
 			result.WriteString(line)
 			continue
@@ -83,9 +71,7 @@ func WrapText(text string, config *Config) string {
 	return result.String()
 }
 
-// wrapLine wraps a single line according to SLW rules
 func wrapLine(line string, config *Config) string {
-	// Don't wrap if line is below minimum length threshold (soft wrap mode)
 	if config.MinLineLength > 0 && len(line) < config.MinLineLength {
 		return line
 	}
@@ -111,7 +97,6 @@ func wrapLine(line string, config *Config) string {
 		}
 	}
 
-	// Write any remaining content
 	if currentLineStart < len(runes) {
 		result.WriteString(string(runes[currentLineStart:]))
 	}
@@ -119,7 +104,6 @@ func wrapLine(line string, config *Config) string {
 	return result.String()
 }
 
-// isSentenceBoundary checks if position i is a sentence boundary
 func isSentenceBoundary(runes []rune, i int, config *Config) bool {
 	if i >= len(runes) {
 		return false
@@ -137,7 +121,6 @@ func isSentenceBoundary(runes []rune, i int, config *Config) bool {
 	return !isAbbreviation(runes, i, config.Abbreviations)
 }
 
-// skipWhitespace returns the position after all whitespace starting at pos
 func skipWhitespace(runes []rune, pos int) int {
 	for pos < len(runes) && unicode.IsSpace(runes[pos]) {
 		pos++
@@ -146,9 +129,7 @@ func skipWhitespace(runes []rune, pos int) int {
 	return pos
 }
 
-// isAbbreviation checks if the marker is part of an abbreviation
 func isAbbreviation(runes []rune, markerPos int, abbreviations map[string]bool) bool {
-	// Look backwards to extract the word before the marker
 	start := markerPos - 1
 	for start >= 0 && (unicode.IsLetter(runes[start]) || runes[start] == '.') {
 		start--
@@ -156,10 +137,7 @@ func isAbbreviation(runes []rune, markerPos int, abbreviations map[string]bool) 
 
 	start++
 
-	// Extract the potential abbreviation (without the current marker)
-	// This includes any internal periods (e.g., "ph.d" from "Ph.D.")
 	word := strings.ToLower(string(runes[start:markerPos]))
 
-	// Check if it's in our abbreviations list
 	return abbreviations[word]
 }

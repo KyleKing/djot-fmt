@@ -1,26 +1,16 @@
 package formatter_test
 
 import (
-	"bufio"
-	"fmt"
-	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/KyleKing/djot-fmt/internal/formatter"
-	"github.com/KyleKing/djot-fmt/internal/slw"
+	"github.com/KyleKing/djot-fmt/internal/testutil"
 	"github.com/sivukhin/godjot/v2/djot_parser"
 	"github.com/stretchr/testify/assert"
 )
 
-// TestFormat_AllNodeTypesSupported verifies that all current djot node types
-// are supported. If godjot adds new node types in the future, they will cause
-// a panic which will be caught by the panic recovery in ProcessFile.
 func TestFormat_AllNodeTypesSupported(t *testing.T) {
-	// All node types are now supported - this test documents that fact
-	// and can be extended with specific node type coverage checks if needed
 	supportedInputs := []struct {
 		name  string
 		input string
@@ -37,15 +27,13 @@ func TestFormat_AllNodeTypesSupported(t *testing.T) {
 	for _, tt := range supportedInputs {
 		t.Run(tt.name, func(t *testing.T) {
 			ast := djot_parser.BuildDjotAst([]byte(tt.input))
-			// Should not panic
-			assert.NotPanics(t, func() { formatter.Format(ast) })
+			result := formatter.Format(ast)
+			assert.NotEmpty(t, result)
 		})
 	}
 }
 
-// Test basic data structure manipulation
 func TestFormat_SimpleParagraphAST(t *testing.T) {
-	// Test with manually constructed AST to ensure the data structure handling works
 	ast := []djot_parser.TreeNode[djot_parser.DjotNode]{
 		{
 			Type: djot_parser.ParagraphNode,
@@ -60,165 +48,10 @@ func TestFormat_SimpleParagraphAST(t *testing.T) {
 	assert.Equal(t, expected, result)
 }
 
-// Fixture represents a single test case from a fixture file
-type Fixture struct {
-	LineNumber int
-	Title      string
-	Input      string
-	Expected   string
-	Options    map[string]string
-}
-
-// readFixtures reads test fixtures from a file in the format used by mdformat-slw
-//
-//nolint:cyclop // Test fixture parser has inherent complexity from state machine
-func readFixtures(filepath string) ([]Fixture, error) {
-	file, err := os.Open(filepath)
-	if err != nil {
-		return nil, fmt.Errorf("opening fixture file: %w", err)
-	}
-	defer file.Close()
-
-	var fixtures []Fixture
-
-	scanner := bufio.NewScanner(file)
-	lineNum := 0
-
-	for scanner.Scan() {
-		lineNum++
-		line := strings.TrimSpace(scanner.Text())
-
-		// Skip empty lines
-		if line == "" {
-			continue
-		}
-
-		// Read title
-		title := line
-		startLine := lineNum
-		lineNum++
-
-		// Expect '.'
-		if !scanner.Scan() {
-			break
-		}
-
-		if strings.TrimSpace(scanner.Text()) != "." {
-			continue
-		}
-
-		lineNum++
-
-		// Read input until '.'
-		var inputLines []string
-
-		for scanner.Scan() {
-			lineNum++
-
-			line := scanner.Text()
-			if line == "." {
-				break
-			}
-
-			inputLines = append(inputLines, line)
-		}
-
-		// Read expected until '.'
-		var expectedLines []string
-
-		for scanner.Scan() {
-			lineNum++
-
-			line := scanner.Text()
-			if line == "." {
-				break
-			}
-
-			expectedLines = append(expectedLines, line)
-		}
-
-		// Read options (optional)
-		options := make(map[string]string)
-
-		for scanner.Scan() {
-			lineNum++
-
-			line := strings.TrimSpace(scanner.Text())
-			if line == "" {
-				break
-			}
-
-			if strings.HasPrefix(line, "--") {
-				// Parse option
-				option := strings.TrimPrefix(line, "--")
-				if strings.Contains(option, "=") {
-					parts := strings.SplitN(option, "=", 2)
-					options[parts[0]] = strings.Trim(parts[1], "\"")
-				} else {
-					options[option] = "true"
-				}
-			} else {
-				break
-			}
-		}
-
-		input := strings.Join(inputLines, "\n")
-		if len(inputLines) > 0 {
-			input += "\n"
-		}
-
-		expected := strings.Join(expectedLines, "\n")
-		if len(expectedLines) > 0 {
-			expected += "\n"
-		}
-
-		fixtures = append(fixtures, Fixture{
-			LineNumber: startLine,
-			Title:      title,
-			Input:      input,
-			Expected:   expected,
-			Options:    options,
-		})
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("scanning fixture file: %w", err)
-	}
-
-	return fixtures, nil
-}
-
-// configFromOptions creates a SLW Config from fixture options
-func configFromOptions(options map[string]string) *slw.Config {
-	config := slw.DefaultConfig()
-
-	if val, ok := options["no-wrap-sentences"]; ok && val == "true" {
-		config.Enabled = false
-	}
-
-	if val, ok := options["slw-markers"]; ok {
-		config.Markers = val
-	}
-
-	if val, ok := options["slw-wrap"]; ok {
-		if i, err := strconv.Atoi(val); err == nil {
-			config.MaxLineWidth = i
-		}
-	}
-
-	if val, ok := options["slw-min-line"]; ok {
-		if i, err := strconv.Atoi(val); err == nil {
-			config.MinLineLength = i
-		}
-	}
-
-	return config
-}
-
 func TestFormat_BasicFixtures(t *testing.T) {
 	path := filepath.Join("../../testdata/formatter", "basic.txt")
 
-	fixtures, err := readFixtures(path)
+	fixtures, err := testutil.ReadFixtures(path)
 	if err != nil {
 		t.Fatalf("Failed to read fixtures: %v", err)
 	}
@@ -231,8 +64,6 @@ func TestFormat_BasicFixtures(t *testing.T) {
 			if !assert.Equal(t, fixture.Expected, result) {
 				t.Logf("Fixture: %s (line %d)", fixture.Title, fixture.LineNumber)
 				t.Logf("Input: %q", fixture.Input)
-				t.Logf("Expected: %q", fixture.Expected)
-				t.Logf("Got: %q", result)
 			}
 		})
 	}
@@ -241,22 +72,20 @@ func TestFormat_BasicFixtures(t *testing.T) {
 func TestFormat_SLWFixtures(t *testing.T) {
 	path := filepath.Join("../../testdata/formatter", "slw.txt")
 
-	fixtures, err := readFixtures(path)
+	fixtures, err := testutil.ReadFixtures(path)
 	if err != nil {
 		t.Fatalf("Failed to read fixtures: %v", err)
 	}
 
 	for _, fixture := range fixtures {
 		t.Run(fixture.Title, func(t *testing.T) {
-			config := configFromOptions(fixture.Options)
+			config := testutil.ConfigFromOptions(fixture.Options)
 			ast := djot_parser.BuildDjotAst([]byte(fixture.Input))
 			result := formatter.FormatWithConfig(ast, config)
 
 			if !assert.Equal(t, fixture.Expected, result) {
 				t.Logf("Fixture: %s (line %d)", fixture.Title, fixture.LineNumber)
 				t.Logf("Input: %q", fixture.Input)
-				t.Logf("Expected: %q", fixture.Expected)
-				t.Logf("Got: %q", result)
 			}
 		})
 	}
@@ -265,7 +94,7 @@ func TestFormat_SLWFixtures(t *testing.T) {
 func TestFormat_InlineFixtures(t *testing.T) {
 	path := filepath.Join("../../testdata/formatter", "inline.txt")
 
-	fixtures, err := readFixtures(path)
+	fixtures, err := testutil.ReadFixtures(path)
 	if err != nil {
 		t.Fatalf("Failed to read fixtures: %v", err)
 	}
@@ -278,15 +107,11 @@ func TestFormat_InlineFixtures(t *testing.T) {
 			if !assert.Equal(t, fixture.Expected, result) {
 				t.Logf("Fixture: %s (line %d)", fixture.Title, fixture.LineNumber)
 				t.Logf("Input: %q", fixture.Input)
-				t.Logf("Expected: %q", fixture.Expected)
-				t.Logf("Got: %q", result)
 			}
 		})
 	}
 }
 
-// TestFormat_Idempotency verifies that formatting is idempotent:
-// Format(Format(input)) == Format(input)
 func TestFormat_Idempotency(t *testing.T) {
 	fixtureFiles := []string{
 		"basic.txt",
@@ -298,26 +123,22 @@ func TestFormat_Idempotency(t *testing.T) {
 		t.Run(filename, func(t *testing.T) {
 			path := filepath.Join("../../testdata/formatter", filename)
 
-			fixtures, err := readFixtures(path)
+			fixtures, err := testutil.ReadFixtures(path)
 			if err != nil {
 				t.Fatalf("Failed to read fixtures from %s: %v", filename, err)
 			}
 
 			for _, fixture := range fixtures {
 				t.Run(fixture.Title, func(t *testing.T) {
-					// First format
 					ast1 := djot_parser.BuildDjotAst([]byte(fixture.Input))
 					first := formatter.Format(ast1)
 
-					// Second format
 					ast2 := djot_parser.BuildDjotAst([]byte(first))
 					second := formatter.Format(ast2)
 
 					if !assert.Equal(t, first, second) {
 						t.Logf("Fixture: %s (line %d)", fixture.Title, fixture.LineNumber)
 						t.Logf("Input: %q", fixture.Input)
-						t.Logf("First format: %q", first)
-						t.Logf("Second format: %q", second)
 					}
 				})
 			}

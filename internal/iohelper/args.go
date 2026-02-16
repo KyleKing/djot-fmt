@@ -8,20 +8,18 @@ import (
 )
 
 type Options struct {
-	InputFiles []string
-	OutputFile string
-	Write      bool
-	Check      bool
-	// SLW options
-	NoWrapSentences bool   // Disable SLW
-	SlwMarkers      string // Sentence markers (default ".!?")
-	SlwWrap         int    // Max line width (default 88, 0 to disable)
-	SlwMinLine      int    // Min line length before wrapping (default 40, 0 for aggressive)
+	InputFiles      []string
+	OutputFile      string
+	Write           bool
+	Check           bool
+	NoWrapSentences bool
+	SlwMarkers      string
+	SlwWrap         int
+	SlwMinLine      int
 }
 
 func ParseArgs(args []string) (*Options, error) {
 	opts := &Options{
-		// Set SLW defaults
 		SlwMarkers: ".!?",
 		SlwWrap:    88,
 		SlwMinLine: 40,
@@ -38,9 +36,7 @@ func ParseArgs(args []string) (*Options, error) {
 				return nil, err
 			}
 		} else {
-			if err := setInputFile(arg, opts); err != nil {
-				return nil, err
-			}
+			opts.InputFiles = append(opts.InputFiles, arg)
 		}
 	}
 
@@ -97,11 +93,6 @@ func parseIntFlag(flag string, args []string, i int, target *int) (int, error) {
 	*target = val
 
 	return i + 1, nil
-}
-
-func setInputFile(file string, opts *Options) error {
-	opts.InputFiles = append(opts.InputFiles, file)
-	return nil
 }
 
 func validateOptions(opts *Options) error {

@@ -111,12 +111,10 @@ func (w *Writer) PopIndent() *Writer {
 	return w
 }
 
-// IncreaseIndent provides backward compatibility for fixed 2-space indentation
 func (w *Writer) IncreaseIndent() *Writer {
 	return w.PushIndent("  ")
 }
 
-// DecreaseIndent provides backward compatibility
 func (w *Writer) DecreaseIndent() *Writer {
 	return w.PopIndent()
 }

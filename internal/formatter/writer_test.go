@@ -7,19 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestWriter_String_TrailingNewlineNormalization documents and verifies
-// the Writer's trailing newline normalization behavior.
-//
-// The Writer.String() method ensures that all output ends with exactly
-// one newline character, regardless of how many (or how few) trailing
-// newlines were in the original content.
-//
-// This behavior is intentional and correct because:
-//  1. POSIX defines a line as ending with a newline character
-//  2. Many tools expect text files to end with a newline
-//  3. Git and other version control systems work better with files
-//     that have a trailing newline
-//  4. Consistent trailing newlines make diffs cleaner
 func TestWriter_String_TrailingNewlineNormalization(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -82,8 +69,6 @@ func TestWriter_String_TrailingNewlineNormalization(t *testing.T) {
 	}
 }
 
-// TestWriter_String_PreservesInternalNewlines verifies that internal
-// newlines (not at the end) are preserved exactly as written.
 func TestWriter_String_PreservesInternalNewlines(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -118,8 +103,6 @@ func TestWriter_String_PreservesInternalNewlines(t *testing.T) {
 	}
 }
 
-// TestWriter_String_Idempotency verifies that calling String() on
-// the result of String() produces the same output.
 func TestWriter_String_Idempotency(t *testing.T) {
 	tests := []string{
 		"Hello",

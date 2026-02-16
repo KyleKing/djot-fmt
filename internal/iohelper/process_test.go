@@ -10,6 +10,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func defaultTestOptions() *iohelper.Options {
+	return &iohelper.Options{
+		SlwMarkers: ".!?",
+		SlwWrap:    88,
+		SlwMinLine: 40,
+	}
+}
+
 func TestProcessFile_CodeBlockSupported(t *testing.T) {
 	tmpDir := t.TempDir()
 	inputFile := filepath.Join(tmpDir, "test.djot")
@@ -18,13 +26,9 @@ func TestProcessFile_CodeBlockSupported(t *testing.T) {
 	err := os.WriteFile(inputFile, []byte(input), 0600)
 	require.NoError(t, err)
 
-	opts := &iohelper.Options{
-		Write:      true,
-		InputFiles: []string{inputFile},
-		SlwMarkers: ".!?",
-		SlwWrap:    88,
-		SlwMinLine: 40,
-	}
+	opts := defaultTestOptions()
+	opts.Write = true
+	opts.InputFiles = []string{inputFile}
 
 	err = iohelper.ProcessFile(opts, inputFile)
 	require.NoError(t, err, "code blocks are now supported and should not error")
@@ -90,26 +94,19 @@ Third paragraph.
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create temporary file
 			tmpDir := t.TempDir()
 			inputFile := filepath.Join(tmpDir, "test.djot")
 
 			err := os.WriteFile(inputFile, []byte(tt.input), 0600)
 			require.NoError(t, err)
 
-			// Process with write flag
-			opts := &iohelper.Options{
-				Write:      true,
-				InputFiles: []string{inputFile},
-				SlwMarkers: ".!?",
-				SlwWrap:    88,
-				SlwMinLine: 40,
-			}
+			opts := defaultTestOptions()
+			opts.Write = true
+			opts.InputFiles = []string{inputFile}
 
 			err = iohelper.ProcessFile(opts, inputFile)
 			require.NoError(t, err)
 
-			// Read back the file
 			result, err := os.ReadFile(inputFile)
 			require.NoError(t, err)
 
@@ -122,7 +119,6 @@ func TestProcessFile_Check_AlreadyFormatted(t *testing.T) {
 	tmpDir := t.TempDir()
 	inputFile := filepath.Join(tmpDir, "test.djot")
 
-	// Write already-formatted content
 	formatted := `# Test
 
 This is formatted.
@@ -130,18 +126,13 @@ This is formatted.
 	err := os.WriteFile(inputFile, []byte(formatted), 0600)
 	require.NoError(t, err)
 
-	opts := &iohelper.Options{
-		Check:      true,
-		InputFiles: []string{inputFile},
-		SlwMarkers: ".!?",
-		SlwWrap:    88,
-		SlwMinLine: 40,
-	}
+	opts := defaultTestOptions()
+	opts.Check = true
+	opts.InputFiles = []string{inputFile}
 
 	err = iohelper.ProcessFile(opts, inputFile)
 	require.NoError(t, err, "already formatted file should not return error")
 
-	// Verify file unchanged
 	result, readErr := os.ReadFile(inputFile)
 	require.NoError(t, readErr)
 	assert.Equal(t, formatted, string(result), "file should not be modified")
@@ -151,26 +142,20 @@ func TestProcessFile_Check_NeedsFormatting(t *testing.T) {
 	tmpDir := t.TempDir()
 	inputFile := filepath.Join(tmpDir, "test.djot")
 
-	// Write content that needs formatting (extra spaces in list)
 	unformatted := `-  Item 1
 -  Item 2
 `
 	err := os.WriteFile(inputFile, []byte(unformatted), 0600)
 	require.NoError(t, err)
 
-	opts := &iohelper.Options{
-		Check:      true,
-		InputFiles: []string{inputFile},
-		SlwMarkers: ".!?",
-		SlwWrap:    88,
-		SlwMinLine: 40,
-	}
+	opts := defaultTestOptions()
+	opts.Check = true
+	opts.InputFiles = []string{inputFile}
 
 	err = iohelper.ProcessFile(opts, inputFile)
 	require.Error(t, err, "unformatted file should return error")
 	assert.Contains(t, err.Error(), "not formatted")
 
-	// Verify file unchanged
 	result, readErr := os.ReadFile(inputFile)
 	require.NoError(t, readErr)
 	assert.Equal(t, unformatted, string(result), "file should not be modified in check mode")
@@ -180,22 +165,16 @@ func TestProcessFile_Check_EmptyFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	inputFile := filepath.Join(tmpDir, "empty.djot")
 
-	// Empty file with trailing newline
 	err := os.WriteFile(inputFile, []byte("\n"), 0600)
 	require.NoError(t, err)
 
-	opts := &iohelper.Options{
-		Check:      true,
-		InputFiles: []string{inputFile},
-		SlwMarkers: ".!?",
-		SlwWrap:    88,
-		SlwMinLine: 40,
-	}
+	opts := defaultTestOptions()
+	opts.Check = true
+	opts.InputFiles = []string{inputFile}
 
 	err = iohelper.ProcessFile(opts, inputFile)
 	require.NoError(t, err, "empty file should be considered formatted")
 
-	// Verify file unchanged
 	result, readErr := os.ReadFile(inputFile)
 	require.NoError(t, readErr)
 	assert.Equal(t, "\n", string(result))
@@ -215,23 +194,17 @@ func TestProcessFile_OutputFile_CreatesNewFile(t *testing.T) {
 	err := os.WriteFile(inputFile, []byte(input), 0600)
 	require.NoError(t, err)
 
-	opts := &iohelper.Options{
-		OutputFile: outputFile,
-		InputFiles: []string{inputFile},
-		SlwMarkers: ".!?",
-		SlwWrap:    88,
-		SlwMinLine: 40,
-	}
+	opts := defaultTestOptions()
+	opts.OutputFile = outputFile
+	opts.InputFiles = []string{inputFile}
 
 	err = iohelper.ProcessFile(opts, inputFile)
 	require.NoError(t, err)
 
-	// Verify output file created with formatted content
 	result, readErr := os.ReadFile(outputFile)
 	require.NoError(t, readErr)
 	assert.Equal(t, expected, string(result))
 
-	// Verify input file unchanged
 	inputResult, inputReadErr := os.ReadFile(inputFile)
 	require.NoError(t, inputReadErr)
 	assert.Equal(t, input, string(inputResult), "input file should not be modified")
@@ -252,22 +225,16 @@ func TestProcessFile_OutputFile_OverwritesExisting(t *testing.T) {
 	err := os.WriteFile(inputFile, []byte(input), 0600)
 	require.NoError(t, err)
 
-	// Create existing output file with old content
 	err = os.WriteFile(outputFile, []byte(oldOutput), 0600)
 	require.NoError(t, err)
 
-	opts := &iohelper.Options{
-		OutputFile: outputFile,
-		InputFiles: []string{inputFile},
-		SlwMarkers: ".!?",
-		SlwWrap:    88,
-		SlwMinLine: 40,
-	}
+	opts := defaultTestOptions()
+	opts.OutputFile = outputFile
+	opts.InputFiles = []string{inputFile}
 
 	err = iohelper.ProcessFile(opts, inputFile)
 	require.NoError(t, err)
 
-	// Verify output file overwritten with new formatted content
 	result, readErr := os.ReadFile(outputFile)
 	require.NoError(t, readErr)
 	assert.Equal(t, expected, string(result))
@@ -277,13 +244,9 @@ func TestProcessFile_FileNotFound(t *testing.T) {
 	tmpDir := t.TempDir()
 	nonexistentFile := filepath.Join(tmpDir, "does-not-exist.djot")
 
-	opts := &iohelper.Options{
-		Write:      true,
-		InputFiles: []string{nonexistentFile},
-		SlwMarkers: ".!?",
-		SlwWrap:    88,
-		SlwMinLine: 40,
-	}
+	opts := defaultTestOptions()
+	opts.Write = true
+	opts.InputFiles = []string{nonexistentFile}
 
 	err := iohelper.ProcessFile(opts, nonexistentFile)
 	require.Error(t, err)
@@ -299,17 +262,12 @@ func TestProcessFile_WritePermissionDenied(t *testing.T) {
 	err := os.WriteFile(inputFile, []byte(input), 0600)
 	require.NoError(t, err)
 
-	// Make file read-only
 	err = os.Chmod(inputFile, 0400)
 	require.NoError(t, err)
 
-	opts := &iohelper.Options{
-		Write:      true,
-		InputFiles: []string{inputFile},
-		SlwMarkers: ".!?",
-		SlwWrap:    88,
-		SlwMinLine: 40,
-	}
+	opts := defaultTestOptions()
+	opts.Write = true
+	opts.InputFiles = []string{inputFile}
 
 	err = iohelper.ProcessFile(opts, inputFile)
 	require.Error(t, err, "should fail to write to read-only file")

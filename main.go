@@ -38,7 +38,6 @@ func run() error {
 		return fmt.Errorf("parsing arguments: %w", err)
 	}
 
-	// If no input files specified, process stdin
 	if len(opts.InputFiles) == 0 {
 		if err := iohelper.ProcessFile(opts, ""); err != nil {
 			return fmt.Errorf("processing stdin: %w", err)
@@ -47,7 +46,6 @@ func run() error {
 		return nil
 	}
 
-	// Process each input file
 	var hasError bool
 
 	for _, file := range opts.InputFiles {
@@ -55,7 +53,7 @@ func run() error {
 			fmt.Fprintf(os.Stderr, "%s: %v\n", file, err)
 
 			hasError = true
-			// Continue processing remaining files in check mode
+
 			if !opts.Check {
 				return fmt.Errorf("processing %s: %w", file, err)
 			}

@@ -26,7 +26,6 @@ func ProcessFile(opts *Options, inputFile string) (retErr error) {
 
 	ast := djot_parser.BuildDjotAst(input)
 
-	// Build SLW config from options
 	slwConfig := &slw.Config{
 		Enabled:       !opts.NoWrapSentences,
 		Markers:       opts.SlwMarkers,
