@@ -83,3 +83,59 @@ This is *bold with _nested italic_ text*.
 .
 This is *bold with _nested italic_ text*.
 .
+
+VerbatimNode - code with single backtick
+.
+This is `` code`with`backtick `` in text.
+.
+This is `` code`with`backtick `` in text.
+.
+
+VerbatimNode - code with double backticks
+.
+This is ``` code``double`` ``` in text.
+.
+This is ``` code``double`` ``` in text.
+.
+
+VerbatimNode - code starting with backtick
+.
+This is `` `start `` in text.
+.
+This is `` `start `` in text.
+.
+
+VerbatimNode - code ending with backtick
+.
+This is `` end` `` in text.
+.
+This is `` end` `` in text.
+.
+
+Emphasis with class
+.
+_italic_{.highlight}
+.
+_italic_{.highlight}
+.
+
+Strong with id
+.
+*bold*{#header}
+.
+*bold*{#header}
+.
+
+Link with attributes
+.
+[text](url){.link-class}
+.
+[text](url){.link-class}
+.
+
+Span with multiple attributes
+.
+[text]{.class1 .class2 #myid key="value"}
+.
+[text]{.class1 .class2 #myid key="value"}
+.

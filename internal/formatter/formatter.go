@@ -4,6 +4,7 @@ import (
 	"github.com/KyleKing/djot-fmt/internal/slw"
 	"github.com/sivukhin/godjot/v2/djot_parser"
 	"github.com/sivukhin/godjot/v2/djot_tokenizer"
+	"github.com/sivukhin/godjot/v2/tokenizer"
 )
 
 func formatDocument(_ djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
@@ -49,7 +50,11 @@ func formatUnorderedList(state djot_parser.ConversionState[*Writer], next func(d
 		w.WriteString("\n\n")
 	}
 
+	_, isSparse := state.Node.Attributes.TryGet(djot_parser.SparseListNodeKey)
+	w.SetInSparseList(isSparse)
 	next(nil)
+	w.SetInSparseList(false)
+
 	w.SetLastBlockType(BlockTypeList)
 }
 
@@ -62,7 +67,11 @@ func formatOrderedList(state djot_parser.ConversionState[*Writer], next func(djo
 		w.WriteString("\n\n")
 	}
 
+	_, isSparse := state.Node.Attributes.TryGet(djot_parser.SparseListNodeKey)
+	w.SetInSparseList(isSparse)
 	next(nil)
+	w.SetInSparseList(false)
+
 	w.SetLastBlockType(BlockTypeList)
 }
 
@@ -75,7 +84,11 @@ func formatTaskList(state djot_parser.ConversionState[*Writer], next func(djot_p
 		w.WriteString("\n\n")
 	}
 
+	_, isSparse := state.Node.Attributes.TryGet(djot_parser.SparseListNodeKey)
+	w.SetInSparseList(isSparse)
 	next(nil)
+	w.SetInSparseList(false)
+
 	w.SetLastBlockType(BlockTypeList)
 }
 
@@ -109,6 +122,11 @@ func formatListItem(state djot_parser.ConversionState[*Writer], next func(djot_p
 
 	next(nil)
 
+	// Add blank line after item in sparse lists
+	if w.InSparseList() {
+		w.WriteString("\n")
+	}
+
 	// Restore the block type for proper spacing after the list item
 	w.SetLastBlockType(previousBlockType)
 	w.DecreaseIndent()
@@ -119,12 +137,14 @@ func formatEmphasis(state djot_parser.ConversionState[*Writer], next func(djot_p
 	state.Writer.WriteString("_")
 	next(nil)
 	state.Writer.WriteString("_")
+	state.Writer.WriteString(formatAttributes(state.Node.Attributes))
 }
 
 func formatStrong(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	state.Writer.WriteString("*")
 	next(nil)
 	state.Writer.WriteString("*")
+	state.Writer.WriteString(formatAttributes(state.Node.Attributes))
 }
 
 func formatLink(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
@@ -132,6 +152,7 @@ func formatLink(state djot_parser.ConversionState[*Writer], next func(djot_parse
 	state.Writer.WriteString("[")
 	next(nil)
 	state.Writer.WriteString("](" + url + ")")
+	state.Writer.WriteString(formatAttributes(state.Node.Attributes))
 }
 
 func formatVerbatim(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
@@ -152,40 +173,71 @@ func formatVerbatim(state djot_parser.ConversionState[*Writer], next func(djot_p
 		return
 	}
 
-	// Regular inline code
-	state.Writer.WriteString("`")
+	// Regular inline code - determine delimiter based on content
+	content := extractTextContent(state.Node)
+
+	delimiter := "`"
+	needsSpaces := false
+
+	// Check if content contains backticks and needs a different delimiter
+	if containsSubstring(content, "`") {
+		if containsSubstring(content, "``") {
+			delimiter = "```"
+		} else {
+			delimiter = "``"
+		}
+		// Need spaces if content starts or ends with backticks
+		needsSpaces = hasPrefix(content, "`") || hasSuffix(content, "`")
+	}
+
+	state.Writer.WriteString(delimiter)
+
+	if needsSpaces {
+		state.Writer.WriteString(" ")
+	}
+
 	next(nil)
-	state.Writer.WriteString("`")
+
+	if needsSpaces {
+		state.Writer.WriteString(" ")
+	}
+
+	state.Writer.WriteString(delimiter)
 }
 
 func formatDelete(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	state.Writer.WriteString("{-")
 	next(nil)
 	state.Writer.WriteString("-}")
+	state.Writer.WriteString(formatAttributes(state.Node.Attributes))
 }
 
 func formatInsert(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	state.Writer.WriteString("{+")
 	next(nil)
 	state.Writer.WriteString("+}")
+	state.Writer.WriteString(formatAttributes(state.Node.Attributes))
 }
 
 func formatHighlighted(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	state.Writer.WriteString("{=")
 	next(nil)
 	state.Writer.WriteString("=}")
+	state.Writer.WriteString(formatAttributes(state.Node.Attributes))
 }
 
 func formatSubscript(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	state.Writer.WriteString("{~")
 	next(nil)
 	state.Writer.WriteString("~}")
+	state.Writer.WriteString(formatAttributes(state.Node.Attributes))
 }
 
 func formatSuperscript(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	state.Writer.WriteString("{^")
 	next(nil)
 	state.Writer.WriteString("^}")
+	state.Writer.WriteString(formatAttributes(state.Node.Attributes))
 }
 
 func formatLineBreak(state djot_parser.ConversionState[*Writer], _ func(djot_parser.Children)) {
@@ -193,17 +245,17 @@ func formatLineBreak(state djot_parser.ConversionState[*Writer], _ func(djot_par
 }
 
 func formatImage(state djot_parser.ConversionState[*Writer], _ func(djot_parser.Children)) {
-	alt := state.Node.Attributes.Get("alt")
-	src := state.Node.Attributes.Get("src")
+	alt := state.Node.Attributes.Get(djot_parser.ImgAltKey)
+	src := state.Node.Attributes.Get(djot_parser.ImgSrcKey)
 	state.Writer.WriteString("![" + alt + "](" + src + ")")
+	state.Writer.WriteString(formatAttributes(state.Node.Attributes))
 }
 
 func formatSpan(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
 	state.Writer.WriteString("[")
 	next(nil)
 	state.Writer.WriteString("]")
-	// TODO: Implement attribute serialization in task #9
-	// For now, attributes are not output
+	state.Writer.WriteString(formatAttributes(state.Node.Attributes))
 }
 
 func formatSymbols(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
@@ -473,12 +525,173 @@ func formatHeading(state djot_parser.ConversionState[*Writer], next func(djot_pa
 	}
 
 	// The level is stored in the $HeadingLevelKey attribute as "#" characters
-	levelMarker := state.Node.Attributes.Get("$HeadingLevelKey")
+	levelMarker := state.Node.Attributes.Get(djot_parser.HeadingLevelKey)
 	w.WriteString(levelMarker)
 	w.WriteString(" ")
 	next(nil)
+	w.WriteString(formatAttributes(state.Node.Attributes))
 	w.WriteString("\n")
 	w.SetLastBlockType(BlockTypeHeading)
+}
+
+// shouldSkipAttribute checks if an attribute should be skipped during formatting
+func shouldSkipAttribute(key string) bool {
+	// Skip internal attributes ($-prefixed)
+	if len(key) > 0 && key[0] == '$' {
+		return true
+	}
+
+	// Semantic attributes to skip (internal or structural)
+	skipAttrs := map[string]bool{
+		"href": true,
+		"alt":  true,
+		"src":  true,
+	}
+
+	return skipAttrs[key]
+}
+
+// formatAttributes formats user attributes (class, id, key=value) into djot syntax
+func formatAttributes(attrs tokenizer.Attributes) string {
+	var classes []string
+
+	var id string
+
+	var kvPairs []string
+
+	for _, key := range attrs.Keys {
+		if shouldSkipAttribute(key) {
+			continue
+		}
+
+		val := attrs.Map[key]
+
+		switch key {
+		case "class":
+			for _, cls := range splitSpaces(val) {
+				classes = append(classes, "."+cls)
+			}
+		case "id":
+			id = "#" + val
+		default:
+			escapedVal := replaceAll(val, `"`, `\"`)
+			kvPairs = append(kvPairs, key+`="`+escapedVal+`"`)
+		}
+	}
+
+	var parts []string
+
+	parts = append(parts, classes...)
+	if id != "" {
+		parts = append(parts, id)
+	}
+
+	parts = append(parts, kvPairs...)
+
+	if len(parts) == 0 {
+		return ""
+	}
+
+	return "{" + joinStrings(parts, " ") + "}"
+}
+
+// splitSpaces splits a string on whitespace
+func splitSpaces(s string) []string {
+	if s == "" {
+		return nil
+	}
+
+	var result []string
+
+	var current string
+
+	for _, char := range s {
+		if char == ' ' || char == '\t' || char == '\n' {
+			if current != "" {
+				result = append(result, current)
+				current = ""
+			}
+		} else {
+			current += string(char)
+		}
+	}
+
+	if current != "" {
+		result = append(result, current)
+	}
+
+	return result
+}
+
+// replaceAll replaces all occurrences of old with replacement in s
+func replaceAll(s, old, replacement string) string {
+	var result string
+
+	for i := 0; i < len(s); {
+		if i+len(old) <= len(s) && s[i:i+len(old)] == old {
+			result += replacement
+			i += len(old)
+		} else {
+			result += string(s[i])
+			i++
+		}
+	}
+
+	return result
+}
+
+// joinStrings joins strings with separator
+func joinStrings(strs []string, sep string) string {
+	if len(strs) == 0 {
+		return ""
+	}
+
+	result := strs[0]
+	for i := 1; i < len(strs); i++ {
+		result += sep + strs[i]
+	}
+
+	return result
+}
+
+// extractTextContent recursively extracts all text content from a node
+func extractTextContent(node djot_parser.TreeNode[djot_parser.DjotNode]) string {
+	if node.Type == djot_parser.TextNode {
+		return string(node.Text)
+	}
+
+	var result string
+	for _, child := range node.Children {
+		result += extractTextContent(child)
+	}
+
+	return result
+}
+
+// containsSubstring checks if s contains substr
+func containsSubstring(s, substr string) bool {
+	return len(s) >= len(substr) && findSubstring(s, substr) >= 0
+}
+
+// findSubstring returns the index of the first occurrence of substr in s, or -1 if not found
+func findSubstring(s, substr string) int {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+
+	return -1
+}
+
+// hasPrefix checks if s starts with prefix
+func hasPrefix(s, prefix string) bool {
+	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
+}
+
+// hasSuffix checks if s ends with suffix
+func hasSuffix(s, suffix string) bool {
+	return len(s) >= len(suffix) && s[len(s)-len(suffix):] == suffix
 }
 
 var defaultRegistry = map[djot_parser.DjotNode]djot_parser.Conversion[*Writer]{

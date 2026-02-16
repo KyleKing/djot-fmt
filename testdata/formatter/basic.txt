@@ -331,3 +331,48 @@ simple table
 |---|---|
 | Cell 1 | Cell 2 |
 .
+
+loose unordered list
+.
+- item 1
+
+- item 2
+
+- item 3
+.
+- item 1
+
+- item 2
+
+- item 3
+.
+
+loose ordered list
+.
+1. first
+
+1. second
+
+1. third
+.
+1. first
+
+1. second
+
+1. third
+.
+
+loose task list
+.
+- [ ] unchecked
+
+- [x] checked
+
+- [ ] another
+.
+- [ ] unchecked
+
+- [x] checked
+
+- [ ] another
+.

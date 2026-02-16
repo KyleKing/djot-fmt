@@ -284,3 +284,43 @@ func TestFormat_InlineFixtures(t *testing.T) {
 		})
 	}
 }
+
+// TestFormat_Idempotency verifies that formatting is idempotent:
+// Format(Format(input)) == Format(input)
+func TestFormat_Idempotency(t *testing.T) {
+	fixtureFiles := []string{
+		"basic.txt",
+		"inline.txt",
+		"slw.txt",
+	}
+
+	for _, filename := range fixtureFiles {
+		t.Run(filename, func(t *testing.T) {
+			path := filepath.Join("../../testdata/formatter", filename)
+
+			fixtures, err := readFixtures(path)
+			if err != nil {
+				t.Fatalf("Failed to read fixtures from %s: %v", filename, err)
+			}
+
+			for _, fixture := range fixtures {
+				t.Run(fixture.Title, func(t *testing.T) {
+					// First format
+					ast1 := djot_parser.BuildDjotAst([]byte(fixture.Input))
+					first := formatter.Format(ast1)
+
+					// Second format
+					ast2 := djot_parser.BuildDjotAst([]byte(first))
+					second := formatter.Format(ast2)
+
+					if !assert.Equal(t, first, second) {
+						t.Logf("Fixture: %s (line %d)", fixture.Title, fixture.LineNumber)
+						t.Logf("Input: %q", fixture.Input)
+						t.Logf("First format: %q", first)
+						t.Logf("Second format: %q", second)
+					}
+				})
+			}
+		})
+	}
+}

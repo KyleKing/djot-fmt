@@ -117,3 +117,201 @@ Third paragraph.
 		})
 	}
 }
+
+func TestProcessFile_Check_AlreadyFormatted(t *testing.T) {
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "test.djot")
+
+	// Write already-formatted content
+	formatted := `# Test
+
+This is formatted.
+`
+	err := os.WriteFile(inputFile, []byte(formatted), 0600)
+	require.NoError(t, err)
+
+	opts := &iohelper.Options{
+		Check:      true,
+		InputFiles: []string{inputFile},
+		SlwMarkers: ".!?",
+		SlwWrap:    88,
+		SlwMinLine: 40,
+	}
+
+	err = iohelper.ProcessFile(opts, inputFile)
+	require.NoError(t, err, "already formatted file should not return error")
+
+	// Verify file unchanged
+	result, readErr := os.ReadFile(inputFile)
+	require.NoError(t, readErr)
+	assert.Equal(t, formatted, string(result), "file should not be modified")
+}
+
+func TestProcessFile_Check_NeedsFormatting(t *testing.T) {
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "test.djot")
+
+	// Write content that needs formatting (extra spaces in list)
+	unformatted := `-  Item 1
+-  Item 2
+`
+	err := os.WriteFile(inputFile, []byte(unformatted), 0600)
+	require.NoError(t, err)
+
+	opts := &iohelper.Options{
+		Check:      true,
+		InputFiles: []string{inputFile},
+		SlwMarkers: ".!?",
+		SlwWrap:    88,
+		SlwMinLine: 40,
+	}
+
+	err = iohelper.ProcessFile(opts, inputFile)
+	require.Error(t, err, "unformatted file should return error")
+	assert.Contains(t, err.Error(), "not formatted")
+
+	// Verify file unchanged
+	result, readErr := os.ReadFile(inputFile)
+	require.NoError(t, readErr)
+	assert.Equal(t, unformatted, string(result), "file should not be modified in check mode")
+}
+
+func TestProcessFile_Check_EmptyFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "empty.djot")
+
+	// Empty file with trailing newline
+	err := os.WriteFile(inputFile, []byte("\n"), 0600)
+	require.NoError(t, err)
+
+	opts := &iohelper.Options{
+		Check:      true,
+		InputFiles: []string{inputFile},
+		SlwMarkers: ".!?",
+		SlwWrap:    88,
+		SlwMinLine: 40,
+	}
+
+	err = iohelper.ProcessFile(opts, inputFile)
+	require.NoError(t, err, "empty file should be considered formatted")
+
+	// Verify file unchanged
+	result, readErr := os.ReadFile(inputFile)
+	require.NoError(t, readErr)
+	assert.Equal(t, "\n", string(result))
+}
+
+func TestProcessFile_OutputFile_CreatesNewFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "input.djot")
+	outputFile := filepath.Join(tmpDir, "output.djot")
+
+	input := `-  Item 1
+-  Item 2
+`
+	expected := `- Item 1
+- Item 2
+`
+	err := os.WriteFile(inputFile, []byte(input), 0600)
+	require.NoError(t, err)
+
+	opts := &iohelper.Options{
+		OutputFile: outputFile,
+		InputFiles: []string{inputFile},
+		SlwMarkers: ".!?",
+		SlwWrap:    88,
+		SlwMinLine: 40,
+	}
+
+	err = iohelper.ProcessFile(opts, inputFile)
+	require.NoError(t, err)
+
+	// Verify output file created with formatted content
+	result, readErr := os.ReadFile(outputFile)
+	require.NoError(t, readErr)
+	assert.Equal(t, expected, string(result))
+
+	// Verify input file unchanged
+	inputResult, inputReadErr := os.ReadFile(inputFile)
+	require.NoError(t, inputReadErr)
+	assert.Equal(t, input, string(inputResult), "input file should not be modified")
+}
+
+func TestProcessFile_OutputFile_OverwritesExisting(t *testing.T) {
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "input.djot")
+	outputFile := filepath.Join(tmpDir, "output.djot")
+
+	input := `# New Content
+`
+	oldOutput := `# Old Content
+`
+	expected := `# New Content
+`
+
+	err := os.WriteFile(inputFile, []byte(input), 0600)
+	require.NoError(t, err)
+
+	// Create existing output file with old content
+	err = os.WriteFile(outputFile, []byte(oldOutput), 0600)
+	require.NoError(t, err)
+
+	opts := &iohelper.Options{
+		OutputFile: outputFile,
+		InputFiles: []string{inputFile},
+		SlwMarkers: ".!?",
+		SlwWrap:    88,
+		SlwMinLine: 40,
+	}
+
+	err = iohelper.ProcessFile(opts, inputFile)
+	require.NoError(t, err)
+
+	// Verify output file overwritten with new formatted content
+	result, readErr := os.ReadFile(outputFile)
+	require.NoError(t, readErr)
+	assert.Equal(t, expected, string(result))
+}
+
+func TestProcessFile_FileNotFound(t *testing.T) {
+	tmpDir := t.TempDir()
+	nonexistentFile := filepath.Join(tmpDir, "does-not-exist.djot")
+
+	opts := &iohelper.Options{
+		Write:      true,
+		InputFiles: []string{nonexistentFile},
+		SlwMarkers: ".!?",
+		SlwWrap:    88,
+		SlwMinLine: 40,
+	}
+
+	err := iohelper.ProcessFile(opts, nonexistentFile)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reading input file")
+}
+
+func TestProcessFile_WritePermissionDenied(t *testing.T) {
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "readonly.djot")
+
+	input := `# Test
+`
+	err := os.WriteFile(inputFile, []byte(input), 0600)
+	require.NoError(t, err)
+
+	// Make file read-only
+	err = os.Chmod(inputFile, 0400)
+	require.NoError(t, err)
+
+	opts := &iohelper.Options{
+		Write:      true,
+		InputFiles: []string{inputFile},
+		SlwMarkers: ".!?",
+		SlwWrap:    88,
+		SlwMinLine: 40,
+	}
+
+	err = iohelper.ProcessFile(opts, inputFile)
+	require.Error(t, err, "should fail to write to read-only file")
+	assert.Contains(t, err.Error(), "writing to file")
+}

@@ -69,6 +69,28 @@ Follow Go best practices from `GO_BEST_PRACTICES.md`:
 - Explicit error handling with context wrapping
 - No dot imports (except in formatter.go for brevity)
 
+### Linting Requirements
+
+The project enforces strict linting rules. Ensure code passes all linters before committing:
+
+**revive**:
+- Never use built-in function names as parameter names (`new`, `make`, `len`, etc.)
+- Use `switch` statements instead of if-else chains with 3+ branches
+
+**gocritic**:
+- Convert if-else chains to switch statements when appropriate
+- Prefer switch for cleaner, more maintainable branching logic
+
+**testifylint**:
+- Use `require.Error(t, err)` and `require.NoError(t, err)` for error assertions in tests
+- Never use `assert.Error` or `assert.NoError` - tests should stop on error assertion failures
+- `assert.*` is acceptable for non-error value comparisons
+
+**cyclop**:
+- Maximum cyclomatic complexity is 10 per function
+- Extract helper functions to reduce complexity when needed
+- Break down complex conditionals and loops into smaller functions
+
 ## Common Tasks
 
 ### Adding Support for New Node Type

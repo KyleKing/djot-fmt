@@ -24,6 +24,7 @@ type Writer struct {
 	slwConfig    *slw.Config
 	inParagraph  bool
 	linePrefixes []string // Stack of line prefixes for blockquotes, etc.
+	inSparseList bool
 }
 
 func NewWriter() *Writer {
@@ -146,6 +147,14 @@ func (w *Writer) PopLinePrefix() {
 	if len(w.linePrefixes) > 0 {
 		w.linePrefixes = w.linePrefixes[:len(w.linePrefixes)-1]
 	}
+}
+
+func (w *Writer) SetInSparseList(sparse bool) {
+	w.inSparseList = sparse
+}
+
+func (w *Writer) InSparseList() bool {
+	return w.inSparseList
 }
 
 func (w *Writer) String() string {
