@@ -60,7 +60,6 @@ Another paragraph here.
 
 This is a paragraph with some content.
 
-
 - Item 1
 - Item 2
 - Item 3

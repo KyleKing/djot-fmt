@@ -141,7 +141,6 @@ A paragraph.
 .
 A paragraph.
 
-
 - item 1
 - item 2
 .
@@ -313,7 +312,7 @@ div with custom attributes
 Content
 :::
 .
-{rating="5"}
+{ rating="5" }
 :::
 Content
 :::
@@ -326,7 +325,7 @@ div with class and custom attributes
 Content
 :::
 .
-{.info rating="5"}
+{ .info rating="5" }
 :::
 Content
 :::

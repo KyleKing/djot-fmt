@@ -116,26 +116,26 @@ Emphasis with class
 .
 _italic_{.highlight}
 .
-_italic_{.highlight}
+_italic_{ .highlight }
 .
 
 Strong with id
 .
 *bold*{#header}
 .
-*bold*{#header}
+*bold*{ #header }
 .
 
 Link with attributes
 .
 [text](url){.link-class}
 .
-[text](url){.link-class}
+[text](url){ .link-class }
 .
 
 Span with multiple attributes
 .
 [text]{.class1 .class2 #myid key="value"}
 .
-[text]{.class1 .class2 #myid key="value"}
+[text]{ .class1 .class2 #myid key="value" }
 .

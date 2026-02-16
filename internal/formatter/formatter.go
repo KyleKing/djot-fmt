@@ -48,7 +48,7 @@ func formatList(state djot_parser.ConversionState[*Writer], next func(djot_parse
 	if w.InListItem() {
 		w.WriteString("\n")
 	} else if w.NeedsBlankLine() {
-		w.WriteString("\n\n")
+		w.WriteString("\n")
 	}
 
 	_, isSparse := state.Node.Attributes.TryGet(djot_parser.SparseListNodeKey)
@@ -463,7 +463,7 @@ func formatHeading(state djot_parser.ConversionState[*Writer], next func(djot_pa
 	w := state.Writer
 
 	if w.NeedsBlankLine() {
-		w.WriteString("\n\n")
+		w.WriteString("\n")
 	}
 
 	levelMarker := state.Node.Attributes.Get(djot_parser.HeadingLevelKey)
@@ -543,7 +543,7 @@ func formatAttributes(attrs tokenizer.Attributes) string {
 		return ""
 	}
 
-	return "{" + strings.Join(parts, " ") + "}"
+	return "{ " + strings.Join(parts, " ") + " }"
 }
 
 func extractTextContent(node djot_parser.TreeNode[djot_parser.DjotNode]) string {
