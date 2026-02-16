@@ -1,0 +1,85 @@
+VerbatimNode - simple inline code
+.
+This is `inline code` in a paragraph.
+.
+This is `inline code` in a paragraph.
+.
+
+DeleteNode - strikethrough text
+.
+This is {-deleted-} text.
+.
+This is {-deleted-} text.
+.
+
+InsertNode - inserted text
+.
+This is {+inserted+} text.
+.
+This is {+inserted+} text.
+.
+
+HighlightedNode - marked text
+.
+This is {=highlighted=} text.
+.
+This is {=highlighted=} text.
+.
+
+SubscriptNode - subscript
+.
+Chemical formula: H{~2~}O
+.
+Chemical formula: H{~2~}O
+.
+
+SuperscriptNode - superscript
+.
+Mathematical expression: x{^2^} + y{^2^}
+.
+Mathematical expression: x{^2^} + y{^2^}
+.
+
+LineBreakNode - hard line break
+.
+First line\
+Second line
+.
+First line\
+Second line
+.
+
+ImageNode - simple image
+.
+![A photo](image.png)
+.
+![A photo](image.png)
+.
+
+ImageNode - image with empty alt text
+.
+![](logo.svg)
+.
+![](logo.svg)
+.
+
+SymbolsNode - emoji
+.
+Hello :smile: world
+.
+Hello :smile: world
+.
+
+Combined inline formatting
+.
+This paragraph has *bold*, _italic_, `code`, {-deleted-}, {+inserted+}, {=highlighted=}, subscript H{~2~}O, superscript x{^2^}, and [a link](https://example.com).
+.
+This paragraph has *bold*, _italic_, `code`, {-deleted-}, {+inserted+}, {=highlighted=}, subscript H{~2~}O, superscript x{^2^}, and [a link](https://example.com).
+.
+
+Nested inline formatting
+.
+This is *bold with _nested italic_ text*.
+.
+This is *bold with _nested italic_ text*.
+.

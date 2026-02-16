@@ -171,3 +171,163 @@ link with emphasis
 [_formatted_ link](https://example.com)
 .
 
+
+thematic break alone
+.
+***
+.
+***
+.
+
+thematic break between paragraphs
+.
+First paragraph.
+
+***
+
+Second paragraph.
+.
+First paragraph.
+
+***
+
+Second paragraph.
+.
+
+code block without language
+.
+```
+code here
+```
+.
+```
+code here
+```
+.
+
+code block with language
+.
+```python
+def hello():
+    print("world")
+```
+.
+```python
+def hello():
+    print("world")
+```
+.
+
+code block after paragraph
+.
+A paragraph.
+
+```go
+func main() {}
+```
+.
+A paragraph.
+
+```go
+func main() {}
+```
+.
+
+raw block
+.
+```=html
+<div>raw html</div>
+```
+.
+```=html
+<div>raw html</div>
+```
+.
+
+simple blockquote
+.
+> This is a quote.
+.
+> This is a quote.
+.
+
+blockquote with multiple paragraphs
+.
+> First paragraph.
+>
+> Second paragraph.
+.
+> First paragraph.
+>
+> Second paragraph.
+.
+
+nested blockquote
+.
+> Outer quote.
+>
+> > Inner quote.
+.
+> Outer quote.
+>
+> > Inner quote.
+.
+
+blockquote after paragraph
+.
+A paragraph.
+
+> A quote.
+.
+A paragraph.
+
+> A quote.
+.
+
+div without class
+.
+:::
+Content inside div.
+:::
+.
+:::
+Content inside div.
+:::
+.
+
+div with class
+.
+::: warning
+This is a warning.
+:::
+.
+::: warning
+This is a warning.
+:::
+.
+
+simple definition list
+.
+Term 1
+: Definition 1
+
+Term 2
+: Definition 2
+.
+Term 1
+: Definition 1
+
+Term 2
+: Definition 2
+.
+
+simple table
+.
+| Header 1 | Header 2 |
+|---|---|
+| Cell 1 | Cell 2 |
+.
+| Header 1 | Header 2 |
+|---|---|
+| Cell 1 | Cell 2 |
+.

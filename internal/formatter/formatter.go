@@ -1,10 +1,9 @@
 package formatter
 
 import (
-	"fmt"
-
 	"github.com/KyleKing/djot-fmt/internal/slw"
 	"github.com/sivukhin/godjot/v2/djot_parser"
+	"github.com/sivukhin/godjot/v2/djot_tokenizer"
 )
 
 func formatDocument(_ djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
@@ -135,8 +134,335 @@ func formatLink(state djot_parser.ConversionState[*Writer], next func(djot_parse
 	state.Writer.WriteString("](" + url + ")")
 }
 
-func formatUnsupported(state djot_parser.ConversionState[*Writer], _ func(djot_parser.Children)) {
-	panic(fmt.Sprintf("djot-fmt: unsupported node type %q — content would be silently dropped; please file an issue", state.Node.Type))
+func formatVerbatim(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	// Check for math mode or raw inline format
+	if _, ok := state.Node.Attributes.TryGet(djot_tokenizer.InlineMathKey); ok {
+		state.Writer.WriteString("$")
+		next(nil)
+		state.Writer.WriteString("$")
+
+		return
+	}
+
+	if _, ok := state.Node.Attributes.TryGet(djot_tokenizer.DisplayMathKey); ok {
+		state.Writer.WriteString("$$")
+		next(nil)
+		state.Writer.WriteString("$$")
+
+		return
+	}
+
+	// Regular inline code
+	state.Writer.WriteString("`")
+	next(nil)
+	state.Writer.WriteString("`")
+}
+
+func formatDelete(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	state.Writer.WriteString("{-")
+	next(nil)
+	state.Writer.WriteString("-}")
+}
+
+func formatInsert(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	state.Writer.WriteString("{+")
+	next(nil)
+	state.Writer.WriteString("+}")
+}
+
+func formatHighlighted(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	state.Writer.WriteString("{=")
+	next(nil)
+	state.Writer.WriteString("=}")
+}
+
+func formatSubscript(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	state.Writer.WriteString("{~")
+	next(nil)
+	state.Writer.WriteString("~}")
+}
+
+func formatSuperscript(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	state.Writer.WriteString("{^")
+	next(nil)
+	state.Writer.WriteString("^}")
+}
+
+func formatLineBreak(state djot_parser.ConversionState[*Writer], _ func(djot_parser.Children)) {
+	state.Writer.WriteString("\\\n")
+}
+
+func formatImage(state djot_parser.ConversionState[*Writer], _ func(djot_parser.Children)) {
+	alt := state.Node.Attributes.Get("alt")
+	src := state.Node.Attributes.Get("src")
+	state.Writer.WriteString("![" + alt + "](" + src + ")")
+}
+
+func formatSpan(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	state.Writer.WriteString("[")
+	next(nil)
+	state.Writer.WriteString("]")
+	// TODO: Implement attribute serialization in task #9
+	// For now, attributes are not output
+}
+
+func formatSymbols(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	state.Writer.WriteString(":")
+	next(nil)
+	state.Writer.WriteString(":")
+}
+
+func formatThematicBreak(state djot_parser.ConversionState[*Writer], _ func(djot_parser.Children)) {
+	w := state.Writer
+
+	if w.NeedsBlankLine() {
+		w.WriteString("\n")
+	}
+
+	w.WriteString("***\n")
+	w.SetLastBlockType(BlockTypeParagraph) // Reuse existing block type
+}
+
+func formatCode(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	w := state.Writer
+
+	if w.NeedsBlankLine() {
+		w.WriteString("\n")
+	}
+
+	// Extract language from class attribute (format: "language-<lang>")
+	class := state.Node.Attributes.Get("class")
+	lang := ""
+
+	if class != "" && len(class) > 9 && class[:9] == "language-" {
+		lang = class[9:]
+	}
+
+	w.WriteString("```")
+
+	if lang != "" {
+		w.WriteString(lang)
+	}
+
+	w.WriteString("\n")
+
+	// Process children (should be TextNode with code content)
+	next(nil)
+
+	w.WriteString("```\n")
+	w.SetLastBlockType(BlockTypeParagraph)
+}
+
+func formatRaw(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	w := state.Writer
+
+	if w.NeedsBlankLine() {
+		w.WriteString("\n")
+	}
+
+	// Get raw format from attribute
+	format := state.Node.Attributes.Get(djot_parser.RawBlockFormatKey)
+
+	w.WriteString("```=")
+	w.WriteString(format)
+	w.WriteString("\n")
+
+	// Process children (should be TextNode with raw content)
+	next(nil)
+
+	w.WriteString("```\n")
+	w.SetLastBlockType(BlockTypeParagraph)
+}
+
+func formatQuote(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	w := state.Writer
+
+	if w.NeedsBlankLine() {
+		w.WriteString("\n")
+	}
+
+	// Push blockquote prefix - WriteString will apply it automatically
+	w.PushLinePrefix("> ")
+
+	// Process children (paragraphs, lists, etc.)
+	previousBlockType := w.GetLastBlockType()
+	w.SetLastBlockType(BlockTypeNone)
+	next(nil)
+	w.SetLastBlockType(previousBlockType)
+
+	// Pop prefix
+	w.PopLinePrefix()
+
+	w.SetLastBlockType(BlockTypeParagraph)
+}
+
+func formatDiv(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	w := state.Writer
+
+	if w.NeedsBlankLine() {
+		w.WriteString("\n")
+	}
+
+	// Get class from attributes
+	class := state.Node.Attributes.Get("class")
+
+	w.WriteString(":::")
+
+	if class != "" {
+		w.WriteString(" ")
+		w.WriteString(class)
+	}
+
+	w.WriteString("\n")
+
+	// Process children
+	previousBlockType := w.GetLastBlockType()
+	w.SetLastBlockType(BlockTypeNone)
+	next(nil)
+	w.SetLastBlockType(previousBlockType)
+
+	w.WriteString(":::\n")
+	w.SetLastBlockType(BlockTypeParagraph)
+}
+
+func formatDefinitionList(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	w := state.Writer
+
+	if w.NeedsBlankLine() {
+		w.WriteString("\n")
+	}
+
+	next(nil)
+	w.SetLastBlockType(BlockTypeParagraph)
+}
+
+func formatDefinitionTerm(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	w := state.Writer
+
+	// Terms are inline content
+	next(nil)
+	w.WriteString("\n")
+}
+
+func formatDefinitionItem(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	w := state.Writer
+
+	w.WriteString(": ")
+	w.IncreaseIndent()
+
+	previousBlockType := w.GetLastBlockType()
+	w.SetLastBlockType(BlockTypeNone)
+	next(nil)
+	w.SetLastBlockType(previousBlockType)
+
+	w.DecreaseIndent()
+}
+
+func formatReferenceDef(state djot_parser.ConversionState[*Writer], _ func(djot_parser.Children)) {
+	w := state.Writer
+
+	if w.NeedsBlankLine() {
+		w.WriteString("\n")
+	}
+
+	// Get reference key and URL
+	label := state.Node.Attributes.Get(djot_tokenizer.ReferenceKey)
+	url := state.Node.Attributes.Get(djot_parser.LinkHrefKey)
+
+	w.WriteString("[")
+	w.WriteString(label)
+	w.WriteString("]: ")
+	w.WriteString(url)
+	w.WriteString("\n")
+	w.SetLastBlockType(BlockTypeParagraph)
+}
+
+func formatFootnoteDef(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	w := state.Writer
+
+	if w.NeedsBlankLine() {
+		w.WriteString("\n")
+	}
+
+	// Get footnote label
+	label := state.Node.Attributes.Get(djot_tokenizer.ReferenceKey)
+
+	w.WriteString("[^")
+	w.WriteString(label)
+	w.WriteString("]: ")
+	w.IncreaseIndent()
+
+	previousBlockType := w.GetLastBlockType()
+	w.SetLastBlockType(BlockTypeNone)
+	next(nil)
+	w.SetLastBlockType(previousBlockType)
+
+	w.DecreaseIndent()
+	w.SetLastBlockType(BlockTypeParagraph)
+}
+
+// Table rendering - simplified implementation
+func formatTable(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	w := state.Writer
+
+	if w.NeedsBlankLine() {
+		w.WriteString("\n")
+	}
+
+	// Process children (rows and caption)
+	next(nil)
+
+	w.SetLastBlockType(BlockTypeParagraph)
+}
+
+func formatTableRow(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	w := state.Writer
+
+	// Check if this is a header row (first row with TableHeaderNode children)
+	isHeader := false
+	if len(state.Node.Children) > 0 {
+		isHeader = state.Node.Children[0].Type == djot_parser.TableHeaderNode
+	}
+
+	// Start row
+	w.WriteString("|")
+
+	// Process cells
+	next(nil)
+
+	w.WriteString("\n")
+
+	// Add separator row after header
+	if isHeader && len(state.Node.Children) > 0 {
+		w.WriteString("|")
+
+		for range state.Node.Children {
+			w.WriteString("---|")
+		}
+
+		w.WriteString("\n")
+	}
+}
+
+func formatTableHeader(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	w := state.Writer
+
+	w.WriteString(" ")
+	next(nil)
+	w.WriteString(" |")
+}
+
+func formatTableCell(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	w := state.Writer
+
+	w.WriteString(" ")
+	next(nil)
+	w.WriteString(" |")
+}
+
+func formatTableCaption(_ djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
+	// Caption processing - simplified (would need special handling in real implementation)
+	next(nil)
 }
 
 func formatHeading(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
@@ -169,33 +495,40 @@ var defaultRegistry = map[djot_parser.DjotNode]djot_parser.Conversion[*Writer]{
 	djot_parser.StrongNode:        formatStrong,
 	djot_parser.LinkNode:          formatLink,
 	djot_parser.HeadingNode:       formatHeading,
+	// Phase 1: Inline formatting
+	djot_parser.VerbatimNode:    formatVerbatim,
+	djot_parser.DeleteNode:      formatDelete,
+	djot_parser.InsertNode:      formatInsert,
+	djot_parser.HighlightedNode: formatHighlighted,
+	djot_parser.SubscriptNode:   formatSubscript,
+	djot_parser.SuperscriptNode: formatSuperscript,
+	djot_parser.LineBreakNode:   formatLineBreak,
+	djot_parser.ImageNode:       formatImage,
+	djot_parser.SpanNode:        formatSpan,
+	djot_parser.SymbolsNode:     formatSymbols,
 
-	// Unsupported node types — panic with clear message instead of silent content loss
-	djot_parser.QuoteNode:          formatUnsupported,
-	djot_parser.DefinitionListNode: formatUnsupported,
-	djot_parser.DefinitionTermNode: formatUnsupported,
-	djot_parser.DefinitionItemNode: formatUnsupported,
-	djot_parser.CodeNode:           formatUnsupported,
-	djot_parser.RawNode:            formatUnsupported,
-	djot_parser.ThematicBreakNode:  formatUnsupported,
-	djot_parser.DivNode:            formatUnsupported,
-	djot_parser.TableNode:          formatUnsupported,
-	djot_parser.TableCaptionNode:   formatUnsupported,
-	djot_parser.TableRowNode:       formatUnsupported,
-	djot_parser.TableHeaderNode:    formatUnsupported,
-	djot_parser.TableCellNode:      formatUnsupported,
-	djot_parser.ReferenceDefNode:   formatUnsupported,
-	djot_parser.FootnoteDefNode:    formatUnsupported,
-	djot_parser.HighlightedNode:    formatUnsupported,
-	djot_parser.SubscriptNode:      formatUnsupported,
-	djot_parser.SuperscriptNode:    formatUnsupported,
-	djot_parser.InsertNode:         formatUnsupported,
-	djot_parser.DeleteNode:         formatUnsupported,
-	djot_parser.SymbolsNode:        formatUnsupported,
-	djot_parser.VerbatimNode:       formatUnsupported,
-	djot_parser.LineBreakNode:      formatUnsupported,
-	djot_parser.ImageNode:          formatUnsupported,
-	djot_parser.SpanNode:           formatUnsupported,
+	// Phase 2: Block-level nodes
+	djot_parser.ThematicBreakNode: formatThematicBreak,
+	djot_parser.CodeNode:          formatCode,
+	djot_parser.RawNode:           formatRaw,
+	djot_parser.QuoteNode:         formatQuote,
+	djot_parser.DivNode:           formatDiv,
+
+	// Phase 4: Definition lists
+	djot_parser.DefinitionListNode: formatDefinitionList,
+	djot_parser.DefinitionTermNode: formatDefinitionTerm,
+	djot_parser.DefinitionItemNode: formatDefinitionItem,
+
+	// Phase 5: References and footnotes
+	djot_parser.ReferenceDefNode: formatReferenceDef,
+	djot_parser.FootnoteDefNode:  formatFootnoteDef,
+
+	// Phase 3: Tables
+	djot_parser.TableNode:        formatTable,
+	djot_parser.TableRowNode:     formatTableRow,
+	djot_parser.TableHeaderNode:  formatTableHeader,
+	djot_parser.TableCellNode:    formatTableCell,
+	djot_parser.TableCaptionNode: formatTableCaption,
 }
 
 func Format(ast []djot_parser.TreeNode[djot_parser.DjotNode]) string {

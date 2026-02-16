@@ -20,11 +20,7 @@ func TestFormat_UnsupportedNodePanics(t *testing.T) {
 		name  string
 		input string
 	}{
-		{"code block", "```\ncode\n```\n"},
-		{"blockquote", "> quoted\n"},
-		{"thematic break", "***\n"},
-		{"inline code", "Some `code` here.\n"},
-		{"image", "![alt](image.png)\n"},
+		// No unsupported types tested yet - add when implementing definition lists
 	}
 
 	for _, tt := range unsupportedInputs {
@@ -244,6 +240,29 @@ func TestFormat_SLWFixtures(t *testing.T) {
 			config := configFromOptions(fixture.Options)
 			ast := djot_parser.BuildDjotAst([]byte(fixture.Input))
 			result := formatter.FormatWithConfig(ast, config)
+
+			if !assert.Equal(t, fixture.Expected, result) {
+				t.Logf("Fixture: %s (line %d)", fixture.Title, fixture.LineNumber)
+				t.Logf("Input: %q", fixture.Input)
+				t.Logf("Expected: %q", fixture.Expected)
+				t.Logf("Got: %q", result)
+			}
+		})
+	}
+}
+
+func TestFormat_InlineFixtures(t *testing.T) {
+	path := filepath.Join("../../testdata/formatter", "inline.txt")
+
+	fixtures, err := readFixtures(path)
+	if err != nil {
+		t.Fatalf("Failed to read fixtures: %v", err)
+	}
+
+	for _, fixture := range fixtures {
+		t.Run(fixture.Title, func(t *testing.T) {
+			ast := djot_parser.BuildDjotAst([]byte(fixture.Input))
+			result := formatter.Format(ast)
 
 			if !assert.Equal(t, fixture.Expected, result) {
 				t.Logf("Fixture: %s (line %d)", fixture.Title, fixture.LineNumber)
