@@ -15,6 +15,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestFormat_UnsupportedNodePanics(t *testing.T) {
+	unsupportedInputs := []struct {
+		name  string
+		input string
+	}{
+		{"code block", "```\ncode\n```\n"},
+		{"blockquote", "> quoted\n"},
+		{"thematic break", "***\n"},
+		{"inline code", "Some `code` here.\n"},
+		{"image", "![alt](image.png)\n"},
+	}
+
+	for _, tt := range unsupportedInputs {
+		t.Run(tt.name, func(t *testing.T) {
+			ast := djot_parser.BuildDjotAst([]byte(tt.input))
+
+			assert.Panics(t, func() { formatter.Format(ast) })
+		})
+	}
+}
+
 // Test basic data structure manipulation
 func TestFormat_SimpleParagraphAST(t *testing.T) {
 	// Test with manually constructed AST to ensure the data structure handling works

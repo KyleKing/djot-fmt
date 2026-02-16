@@ -157,3 +157,17 @@ A paragraph.
 A paragraph.
 .
 
+link with url preserved
+.
+[click here](https://example.com)
+.
+[click here](https://example.com)
+.
+
+link with emphasis
+.
+[_formatted_ link](https://example.com)
+.
+[_formatted_ link](https://example.com)
+.
+

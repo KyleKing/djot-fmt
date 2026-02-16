@@ -46,17 +46,18 @@ The `djot-fmt` project is now set up as a standalone CLI tool for formatting djo
 
 ### 📋 Known Limitations
 
-**Unsupported Node Types** (will pass through but may not format correctly):
-- OrderedListNode (numbered lists)
-- TaskListNode (checkboxes)
-- DefinitionListNode
+**Unsupported Node Types** (will return a clear error with the unsupported type name):
+- DefinitionListNode, DefinitionTermNode, DefinitionItemNode
 - CodeNode (code blocks)
+- RawNode (raw output blocks)
 - QuoteNode (blockquotes)
-- TableNode variants
+- TableNode, TableRowNode, TableHeaderNode, TableCellNode, TableCaptionNode
 - ThematicBreakNode (horizontal rules)
-- SectionNode
-- LineBreakNode
-- Inline nodes: subscript, superscript, math, etc.
+- DivNode (generic containers)
+- LineBreakNode (hard breaks)
+- ImageNode
+- Inline nodes: VerbatimNode, HighlightedNode, SubscriptNode, SuperscriptNode, InsertNode, DeleteNode, SymbolsNode, SpanNode
+- ReferenceDefNode, FootnoteDefNode
 
 **Formatting Options**
 - No configuration options (uses hardcoded 2-space indentation)

@@ -1,6 +1,8 @@
 package formatter
 
 import (
+	"fmt"
+
 	"github.com/KyleKing/djot-fmt/internal/slw"
 	"github.com/sivukhin/godjot/v2/djot_parser"
 )
@@ -127,10 +129,14 @@ func formatStrong(state djot_parser.ConversionState[*Writer], next func(djot_par
 }
 
 func formatLink(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
-	url := state.Node.Attributes.Get("url")
+	url := state.Node.Attributes.Get(djot_parser.LinkHrefKey)
 	state.Writer.WriteString("[")
 	next(nil)
 	state.Writer.WriteString("](" + url + ")")
+}
+
+func formatUnsupported(state djot_parser.ConversionState[*Writer], _ func(djot_parser.Children)) {
+	panic(fmt.Sprintf("djot-fmt: unsupported node type %q — content would be silently dropped; please file an issue", state.Node.Type))
 }
 
 func formatHeading(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
@@ -150,6 +156,7 @@ func formatHeading(state djot_parser.ConversionState[*Writer], next func(djot_pa
 }
 
 var defaultRegistry = map[djot_parser.DjotNode]djot_parser.Conversion[*Writer]{
+	// Supported node types
 	djot_parser.DocumentNode:      formatDocument,
 	djot_parser.SectionNode:       formatSection,
 	djot_parser.TextNode:          formatText,
@@ -162,6 +169,33 @@ var defaultRegistry = map[djot_parser.DjotNode]djot_parser.Conversion[*Writer]{
 	djot_parser.StrongNode:        formatStrong,
 	djot_parser.LinkNode:          formatLink,
 	djot_parser.HeadingNode:       formatHeading,
+
+	// Unsupported node types — panic with clear message instead of silent content loss
+	djot_parser.QuoteNode:          formatUnsupported,
+	djot_parser.DefinitionListNode: formatUnsupported,
+	djot_parser.DefinitionTermNode: formatUnsupported,
+	djot_parser.DefinitionItemNode: formatUnsupported,
+	djot_parser.CodeNode:           formatUnsupported,
+	djot_parser.RawNode:            formatUnsupported,
+	djot_parser.ThematicBreakNode:  formatUnsupported,
+	djot_parser.DivNode:            formatUnsupported,
+	djot_parser.TableNode:          formatUnsupported,
+	djot_parser.TableCaptionNode:   formatUnsupported,
+	djot_parser.TableRowNode:       formatUnsupported,
+	djot_parser.TableHeaderNode:    formatUnsupported,
+	djot_parser.TableCellNode:      formatUnsupported,
+	djot_parser.ReferenceDefNode:   formatUnsupported,
+	djot_parser.FootnoteDefNode:    formatUnsupported,
+	djot_parser.HighlightedNode:    formatUnsupported,
+	djot_parser.SubscriptNode:      formatUnsupported,
+	djot_parser.SuperscriptNode:    formatUnsupported,
+	djot_parser.InsertNode:         formatUnsupported,
+	djot_parser.DeleteNode:         formatUnsupported,
+	djot_parser.SymbolsNode:        formatUnsupported,
+	djot_parser.VerbatimNode:       formatUnsupported,
+	djot_parser.LineBreakNode:      formatUnsupported,
+	djot_parser.ImageNode:          formatUnsupported,
+	djot_parser.SpanNode:           formatUnsupported,
 }
 
 func Format(ast []djot_parser.TreeNode[djot_parser.DjotNode]) string {

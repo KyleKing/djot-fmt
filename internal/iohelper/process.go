@@ -12,7 +12,13 @@ import (
 	"github.com/sivukhin/godjot/v2/djot_parser"
 )
 
-func ProcessFile(opts *Options, inputFile string) error {
+func ProcessFile(opts *Options, inputFile string) (retErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			retErr = fmt.Errorf("%v", r)
+		}
+	}()
+
 	input, err := readInput(inputFile)
 	if err != nil {
 		return err
