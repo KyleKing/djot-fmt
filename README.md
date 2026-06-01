@@ -22,38 +22,38 @@ go install github.com/KyleKing/djot-fmt@latest
 
 ```sh
 # Format stdin to stdout
-cat file.djot | djot-fmt
+cat file.dj | djot-fmt
 
 # Format file and write back
-djot-fmt -w file.djot
+djot-fmt -w file.dj
 
 # Format multiple files and write back
-djot-fmt -w file1.djot file2.djot file3.djot
+djot-fmt -w file1.dj file2.dj file3.dj
 
 # Check if file is formatted (exit 1 if not)
-djot-fmt -c file.djot
+djot-fmt -c file.dj
 
 # Check multiple files
-djot-fmt -c file1.djot file2.djot file3.djot
+djot-fmt -c file1.dj file2.dj file3.dj
 
 # Format to different file
-djot-fmt -o output.djot input.djot
+djot-fmt -o output.dj input.dj
 ```
 
 ### Batch Processing
 
 ```sh
-# Format all .djot files in current directory
-fd -e djot -x djot-fmt -w
+# Format all .dj files in current directory
+fd -e dj -x djot-fmt -w
 
-# Format all .djot files in specific directory
-fd -e djot . content/ -x djot-fmt -w
+# Format all .dj files in specific directory
+fd -e dj . content/ -x djot-fmt -w
 
-# Check formatting for all .djot files
-fd -e djot -x djot-fmt -c
+# Check formatting for all .dj files
+fd -e dj -x djot-fmt -c
 
 # Using find (alternative to fd)
-find . -name "*.djot" -exec djot-fmt -w {} \;
+find . -name "*.dj" -exec djot-fmt -w {} \;
 ```
 
 ### Options

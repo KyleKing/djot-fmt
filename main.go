@@ -91,25 +91,28 @@ SLW (Semantic Line Wrap) Options:
 
 Examples:
   # Format stdin to stdout with SLW enabled (default)
-  cat file.djot | djot-fmt
+  cat file.dj | djot-fmt
 
   # Format file and write back
-  djot-fmt -w file.djot
+  djot-fmt -w file.dj
 
   # Format multiple files and write back
-  djot-fmt -w file1.djot file2.djot file3.djot
+  djot-fmt -w file1.dj file2.dj file3.dj
 
   # Check if files are formatted
-  djot-fmt -c file1.djot file2.djot
+  djot-fmt -c file1.dj file2.dj
 
   # Format to different file
-  djot-fmt -o output.djot input.djot
+  djot-fmt -o output.dj input.dj
 
   # Disable SLW wrapping
-  djot-fmt --no-wrap-sentences file.djot
+  djot-fmt --no-wrap-sentences file.dj
 
   # Aggressive SLW mode (always wrap after sentences)
-  djot-fmt --slw-min-line 0 file.djot
+  djot-fmt --slw-min-line 0 file.dj
+
+  # Format all .dj files in a directory (using fd)
+  fd -e dj . content/ -x djot-fmt -w {}
 
 Focus:
   This tool formats djot files with the following features:

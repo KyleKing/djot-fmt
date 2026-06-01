@@ -20,7 +20,7 @@ func defaultTestOptions() *iohelper.Options {
 
 func TestProcessFile_CodeBlockSupported(t *testing.T) {
 	tmpDir := t.TempDir()
-	inputFile := filepath.Join(tmpDir, "test.djot")
+	inputFile := filepath.Join(tmpDir, "test.dj")
 
 	input := "```\ncode block\n```\n"
 	err := os.WriteFile(inputFile, []byte(input), 0600)
@@ -94,7 +94,7 @@ Third paragraph.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
-			inputFile := filepath.Join(tmpDir, "test.djot")
+			inputFile := filepath.Join(tmpDir, "test.dj")
 
 			err := os.WriteFile(inputFile, []byte(tt.input), 0600)
 			require.NoError(t, err)
@@ -116,7 +116,7 @@ Third paragraph.
 
 func TestProcessFile_Check_AlreadyFormatted(t *testing.T) {
 	tmpDir := t.TempDir()
-	inputFile := filepath.Join(tmpDir, "test.djot")
+	inputFile := filepath.Join(tmpDir, "test.dj")
 
 	formatted := `# Test
 
@@ -139,7 +139,7 @@ This is formatted.
 
 func TestProcessFile_Check_NeedsFormatting(t *testing.T) {
 	tmpDir := t.TempDir()
-	inputFile := filepath.Join(tmpDir, "test.djot")
+	inputFile := filepath.Join(tmpDir, "test.dj")
 
 	unformatted := `-  Item 1
 -  Item 2
@@ -162,7 +162,7 @@ func TestProcessFile_Check_NeedsFormatting(t *testing.T) {
 
 func TestProcessFile_Check_EmptyFile(t *testing.T) {
 	tmpDir := t.TempDir()
-	inputFile := filepath.Join(tmpDir, "empty.djot")
+	inputFile := filepath.Join(tmpDir, "empty.dj")
 
 	err := os.WriteFile(inputFile, []byte("\n"), 0600)
 	require.NoError(t, err)
@@ -181,8 +181,8 @@ func TestProcessFile_Check_EmptyFile(t *testing.T) {
 
 func TestProcessFile_OutputFile_CreatesNewFile(t *testing.T) {
 	tmpDir := t.TempDir()
-	inputFile := filepath.Join(tmpDir, "input.djot")
-	outputFile := filepath.Join(tmpDir, "output.djot")
+	inputFile := filepath.Join(tmpDir, "input.dj")
+	outputFile := filepath.Join(tmpDir, "output.dj")
 
 	input := `-  Item 1
 -  Item 2
@@ -211,8 +211,8 @@ func TestProcessFile_OutputFile_CreatesNewFile(t *testing.T) {
 
 func TestProcessFile_OutputFile_OverwritesExisting(t *testing.T) {
 	tmpDir := t.TempDir()
-	inputFile := filepath.Join(tmpDir, "input.djot")
-	outputFile := filepath.Join(tmpDir, "output.djot")
+	inputFile := filepath.Join(tmpDir, "input.dj")
+	outputFile := filepath.Join(tmpDir, "output.dj")
 
 	input := `# New Content
 `
@@ -241,7 +241,7 @@ func TestProcessFile_OutputFile_OverwritesExisting(t *testing.T) {
 
 func TestProcessFile_FileNotFound(t *testing.T) {
 	tmpDir := t.TempDir()
-	nonexistentFile := filepath.Join(tmpDir, "does-not-exist.djot")
+	nonexistentFile := filepath.Join(tmpDir, "does-not-exist.dj")
 
 	opts := defaultTestOptions()
 	opts.Write = true
@@ -254,7 +254,7 @@ func TestProcessFile_FileNotFound(t *testing.T) {
 
 func TestProcessFile_WritePermissionDenied(t *testing.T) {
 	tmpDir := t.TempDir()
-	inputFile := filepath.Join(tmpDir, "readonly.djot")
+	inputFile := filepath.Join(tmpDir, "readonly.dj")
 
 	input := `# Test
 `

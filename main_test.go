@@ -27,8 +27,8 @@ func TestIntegration_MultiFileCheckMode(t *testing.T) {
 	binary := buildBinary(t)
 	tmpDir := t.TempDir()
 
-	file1 := filepath.Join(tmpDir, "formatted.djot")
-	file2 := filepath.Join(tmpDir, "unformatted.djot")
+	file1 := filepath.Join(tmpDir, "formatted.dj")
+	file2 := filepath.Join(tmpDir, "unformatted.dj")
 
 	err := os.WriteFile(file1, []byte("# Heading\n\nParagraph text.\n"), 0600)
 	require.NoError(t, err)
@@ -40,15 +40,15 @@ func TestIntegration_MultiFileCheckMode(t *testing.T) {
 	output, err := cmd.CombinedOutput()
 
 	require.Error(t, err, "Expected error in check mode for unformatted files")
-	assert.Contains(t, string(output), "unformatted.djot", "Error message should mention unformatted file")
+	assert.Contains(t, string(output), "unformatted.dj", "Error message should mention unformatted file")
 }
 
 func TestIntegration_MultiFileCheckMode_AllFormatted(t *testing.T) {
 	binary := buildBinary(t)
 	tmpDir := t.TempDir()
 
-	file1 := filepath.Join(tmpDir, "file1.djot")
-	file2 := filepath.Join(tmpDir, "file2.djot")
+	file1 := filepath.Join(tmpDir, "file1.dj")
+	file2 := filepath.Join(tmpDir, "file2.dj")
 
 	err := os.WriteFile(file1, []byte("# Heading\n\nParagraph.\n"), 0600)
 	require.NoError(t, err)
@@ -66,8 +66,8 @@ func TestIntegration_MultiFileWriteMode(t *testing.T) {
 	binary := buildBinary(t)
 	tmpDir := t.TempDir()
 
-	file1 := filepath.Join(tmpDir, "file1.djot")
-	file2 := filepath.Join(tmpDir, "file2.djot")
+	file1 := filepath.Join(tmpDir, "file1.dj")
+	file2 := filepath.Join(tmpDir, "file2.dj")
 
 	err := os.WriteFile(file1, []byte("-  Item 1\n-  Item 2\n"), 0600)
 	require.NoError(t, err)
@@ -92,8 +92,8 @@ func TestIntegration_OutputFileWithSingleInput(t *testing.T) {
 	binary := buildBinary(t)
 	tmpDir := t.TempDir()
 
-	inputFile := filepath.Join(tmpDir, "input.djot")
-	outputFile := filepath.Join(tmpDir, "output.djot")
+	inputFile := filepath.Join(tmpDir, "input.dj")
+	outputFile := filepath.Join(tmpDir, "output.dj")
 
 	err := os.WriteFile(inputFile, []byte("-  Item\n"), 0600)
 	require.NoError(t, err)
@@ -115,9 +115,9 @@ func TestIntegration_OutputFileWithMultipleInputs_Fails(t *testing.T) {
 	binary := buildBinary(t)
 	tmpDir := t.TempDir()
 
-	file1 := filepath.Join(tmpDir, "file1.djot")
-	file2 := filepath.Join(tmpDir, "file2.djot")
-	outputFile := filepath.Join(tmpDir, "output.djot")
+	file1 := filepath.Join(tmpDir, "file1.dj")
+	file2 := filepath.Join(tmpDir, "file2.dj")
+	outputFile := filepath.Join(tmpDir, "output.dj")
 
 	err := os.WriteFile(file1, []byte("Text 1\n"), 0600)
 	require.NoError(t, err)
