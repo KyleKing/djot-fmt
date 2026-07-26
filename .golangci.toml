@@ -4,7 +4,7 @@
 [linters]
 default = "standard"
 disabled = [
-  "forbidigo" # forbids identifiers matched by reg exps
+  "forbidigo"  # forbids identifiers matched by reg exps
 ]
 enable = [
   "asciicheck",
@@ -49,7 +49,6 @@ enable = [
 relative-path-mode = "gomod"
 
 [linters.settings]
-
 [linters.settings.revive]
 enable-all-rules = true
 
