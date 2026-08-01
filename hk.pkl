@@ -30,7 +30,9 @@ local commit_msg_checks = new Mapping<String, Step> {
 
 local pre_push_checks = new Mapping<String, Step> {
     ["commitizen-branch"] {
-        check = "cz check --rev-range origin/HEAD..HEAD"
+        // cz exits non-zero on an empty rev-range, which is the normal state of a
+        // branch that is level with origin, so skip it rather than fail the hook
+        check = #"test -z "$(git rev-list origin/HEAD..HEAD)" || cz check --rev-range origin/HEAD..HEAD"#
     }
 }
 
