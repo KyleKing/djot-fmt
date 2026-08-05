@@ -22,6 +22,8 @@ jobs:
     # Fix 403 error (https://github.com/softprops/action-gh-release/issues/400)
     permissions:
       contents: write
+      # Dispatching publish.yml is an Actions API write
+      actions: write
     outputs:
       released: ${{ steps.bump.outputs.released }}
       version: ${{ steps.bump.outputs.version }}
@@ -54,24 +56,11 @@ jobs:
           fi
           echo "version=$REVISION" >> "$GITHUB_OUTPUT"
 
-      # goreleaser runs in the publish workflow, which cannot see this checkout.
-      - name: Upload the release notes
+      # A tag pushed with GITHUB_TOKEN starts no workflow run, and
+      # workflow_dispatch is the one trigger that token may still fire, so
+      # publish.yml is dispatched rather than triggered by the tag.
+      - name: Publish the release
         if: steps.bump.outputs.released == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: release-notes
-          path: body.md
-          if-no-files-found: error
-
-  # A called workflow runs inside this run, so it needs no tag trigger. Tags pushed
-  # with GITHUB_TOKEN never start one.
-  publish:
-    needs: [bump-version]
-    if: needs.bump-version.outputs.released == 'true'
-    uses: ./.github/workflows/publish.yml
-    with:
-      tag: v${{ needs.bump-version.outputs.version }}
-    secrets: inherit
-    permissions:
-      contents: write
-      id-token: write
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run publish.yml -f tag="v${{ steps.bump.outputs.version }}"

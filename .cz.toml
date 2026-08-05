@@ -7,4 +7,6 @@ version_files = [
   "pyproject.toml:^version",
 ]
 tag_format = "v$version"
+# goreleaser and the Go module proxy both reject a pep440 prerelease such as 0.1.0rc2
+version_scheme = "semver"
 update_changelog_on_bump = true
