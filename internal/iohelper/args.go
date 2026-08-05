@@ -32,6 +32,8 @@ type Options struct {
 	Write           bool
 	Check           bool
 	NoWrapSentences bool
+	NoValidate      bool
+	FromMD          bool
 }
 
 // ParseArgs converts command line arguments into validated Options.
@@ -74,6 +76,10 @@ func parseFlag(flag string, args []string, i int, opts *Options) (int, error) {
 		return parseStringFlag(flag, args, i, &opts.OutputFile)
 	case "--no-wrap-sentences":
 		opts.NoWrapSentences = true
+	case "--no-validate":
+		opts.NoValidate = true
+	case "--from-md":
+		opts.FromMD = true
 	case "--slw-markers":
 		return parseStringFlag(flag, args, i, &opts.SlwMarkers)
 	case "--slw-wrap":

@@ -86,6 +86,11 @@ Options:
   -h, --help         Show this help message
   -v, --version      Show version information
 
+Validation Options:
+  --no-validate      Skip the check that formatting preserved the document
+  --from-md          Allow the list changes that formatting markdown as djot causes,
+                     and report each one that was waived
+
 SLW (Semantic Line Wrap) Options:
   --no-wrap-sentences      Disable semantic line wrapping
   --slw-markers TEXT       Characters that mark sentence endings (default: ".!?")

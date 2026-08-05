@@ -92,6 +92,18 @@ find . -name "*.dj" -exec djot-fmt -w {} \;
 - `-h, --help` - Show help message
 - `-v, --version` - Show version information
 
+### Validation Options
+
+After formatting, djot-fmt renders both the input and the output to HTML and compares them.
+A difference means formatting changed what the document says, which is a bug in djot-fmt,
+so the run fails rather than writing the file.
+
+- `--no-validate` - Skip the check
+- `--from-md` - Allow the list changes that formatting markdown as djot causes, and report
+  each one that was waived. djot requires a blank line before a nested list where markdown
+  does not, so inserting that line legitimately changes the parse. Nothing else is waived:
+  losing a word, a block kind, or an `<ol>` start number still fails
+
 ### SLW (Semantic Line Wrap) Options
 
 - `--no-wrap-sentences` - Disable semantic line wrapping

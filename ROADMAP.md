@@ -33,99 +33,6 @@ of a line because emphasis, links, and code spans are siblings it never sees, an
 cannot see the active indent or `>` prefix. Width-aware wrapping, link protection, and
 indent-aware continuation all need the same fix.
 
-## M1: validation, so corruption cannot ship silently
-
-This comes first because it is what turns every remaining milestone from "hope the
-fixtures cover it" into a hard guarantee, and because it found a bug the manual probing
-missed.
-
-mdformat's approach (`mdformat/_util.py:is_md_equal`, called from `_cli.py:157`): render
-both the input and the output to HTML, collapse whitespace, drop empty paragraphs,
-compare. Not equal means abort the write and exit non-zero with "this is a bug in
-mdformat". It is skipped when a plugin declares `CHANGES_AST`, code-formatted languages
-are stripped from the HTML before comparing, and `--no-validate` opts out.
-
-djot-fmt can do exactly this. godjot ships `djot_html`, so the check is about 25 lines.
-I prototyped it and ran it against the cases above:
-
-```
-fm     DIFF   in: <hr> <p><hr> title: Hi</p> …    out: <hr> <hr> <p>title: Hi</p> …
-list   DIFF   in: <li> <p>b</p> <p>nested para</p> </li>
-              out: <li> <p>b</p> </li> </ul> <p>nested para</p>
-num    DIFF   in: <ol start="5">                  out: <ol>
-roman  DIFF   in: <ol start="9" type="a">         out: <ol type="a">
-slw    OK
-misc   OK     (tables, blockquotes, and ::: divs)
-```
-
-It caught every known bug, found the nested-paragraph one, and did not false-positive on
-the formatting djot-fmt gets right. That is the whole case for building it first.
-
-Design notes:
-
-- Normalization has to match mdformat's list, plus djot's `<section>` wrappers around
-  headings
-- Semantic line wrapping only inserts whitespace, so it is HTML-invisible and needs no
-  exemption. Code formatting (M6) does change content, so strip `<code
-  class="language-X">` for any language with a configured formatter, same as mdformat
-- Frontmatter is stripped before both renders, since it is not djot and must compare
-  byte-for-byte instead
-- On by default, `--no-validate` to opt out, and the failure message should name
-  djot-fmt as the bug rather than blaming the input
-- Wire the same check into the fuzz corpus. godjot already has `djot_fuzz_test.go` to
-  copy from, and "parse, format, reparse, compare HTML" is a natural fuzz property
-
-### Formatting markdown as djot legitimately changes the parse
-
-A plain boolean check is too blunt for the case where the input is markdown-shaped, and
-the reason is sharper than I expected. djot requires a blank line before a nested list,
-and markdown does not:
-
-```
-- a          ->  <ul> <li> a - b </li> </ul>
-  - b
-
-- a          ->  <ul> <li> a <ul> <li> b </li> </ul> </li> </ul>
-             (blank line)
-  - b
-```
-
-Without the blank line godjot reads `- b` as lazy continuation text. Four-space
-indentation does not help either. So a formatter that inserts that blank line is doing
-the right thing, and it necessarily changes both the tree and the text, since the `-`
-stops being a literal character and becomes structure. Any check strict enough to catch
-frontmatter loss rejects this too.
-
-The fix is to classify the difference rather than reduce it to a boolean. Diff the two
-normalized HTML trees, label each difference, and apply a per-category policy:
-
-| Category | Meaning | Default | `--from-md` |
-| --- | --- | --- | --- |
-| `text` | The word multiset changed beyond absorbed list markers | Reject | Reject |
-| `block-kind` | A block changed element (`<p>` became `<hr>`, `<h1>`, `<blockquote>`) | Reject | Reject |
-| `list-attrs` | `start` or `type` on `<ol>` changed | Reject | Reject |
-| `list-nesting` | A `<ul>`/`<ol>` level appeared or disappeared | Reject | Allow |
-| `loose-tight` | An `<li>` gained or lost its `<p>` wrapper | Reject | Allow |
-| anything else | Unclassified | Reject | Reject |
-
-`--from-md` therefore widens exactly two categories, both of which are the documented
-markdown-to-djot list differences, and nothing else moves.
-
-The frontmatter case is worth tracing, because it shows why one rule is not enough. Today
-the corruption is `<p><hr> title: Hi</p>` becoming `<hr> <hr> <p>title: Hi</p>`, where the
-words `title:` and `Hi` survive. A word-multiset floor alone would pass it, and
-`block-kind` is what catches it. A future bug that drops the block entirely would trip
-`text` instead. Both paths need to stay closed, under every flag.
-
-Two supporting rules. The word multiset is the floor and no flag relaxes it, with the
-only permitted subtraction being a leading list-marker token that became structure
-(`-`, `*`, `+`, `1.`, `a.`), which is what makes the nested-list case classifiable rather
-than a text loss. And once M3 lands, frontmatter is compared byte-for-byte outside this
-system entirely, so no HTML category governs it.
-
-`--from-md` should also print what it waived, per file. A flag that silently permits
-structural change is one people leave on, and the report is what keeps it honest.
-
 ## M2: buffer inline output per block
 
 `Writer` gains an inline buffer. Block formatters open the buffer, let children render
@@ -452,10 +359,7 @@ that lets you pick loses the property that makes it useful.
 
 ## Sequencing
 
-M1 first. It is small, it is the safety net every other milestone leans on, and it
-already earned its place by finding the nested-paragraph bug.
-
-M2 second, since M5 is mostly blocked on it and M1 makes the refactor verifiable.
+M2 next, since M5 is mostly blocked on it and validation makes the refactor verifiable.
 
 M3 in parallel with either. Frontmatter wraps the pipeline rather than living inside it,
 so it does not conflict, and it unblocks yak-shears earliest.
@@ -480,3 +384,8 @@ format freezes once the option set stops moving.
    cheap enough that it is probably worth a PR regardless
 4. Should `--check` grow a `--diff` split, so CI can print the diff without the exit
    code and vice versa?
+5. Validation compares godjot's derived `<section id>`, so normalizing whitespace inside
+   a heading is reported as a difference. Preserving an authored `{#custom-id}` and
+   ignoring a derived one are indistinguishable in the HTML. Reject is the safe default
+   and the trigger is obscure (`# ` followed by a lazy continuation line), so this stands
+   until someone hits it

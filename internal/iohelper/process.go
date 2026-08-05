@@ -13,14 +13,19 @@ import (
 
 	"github.com/KyleKing/djot-fmt/internal/formatter"
 	"github.com/KyleKing/djot-fmt/internal/slw"
+	"github.com/KyleKing/djot-fmt/internal/validate"
 )
 
 const (
 	formattedFileMode = 0o600
 	diffContextLines  = 3
+	issueTracker      = "https://github.com/KyleKing/djot-fmt/issues"
 )
 
-var errNotFormatted = errors.New("file not formatted")
+var (
+	errNotFormatted     = errors.New("file not formatted")
+	errValidationFailed = errors.New("formatting changed the document")
+)
 
 // ProcessFile formats inputFile and routes the result according to opts.
 func ProcessFile(opts *Options, inputFile string) (retErr error) {
@@ -48,11 +53,50 @@ func ProcessFile(opts *Options, inputFile string) (retErr error) {
 
 	formatted := formatter.FormatWithConfig(ast, slwConfig)
 
+	if err := validateOutput(opts, input, formatted, inputFile); err != nil {
+		return err
+	}
+
 	if opts.Check {
 		return checkFormatted(input, formatted, inputFile)
 	}
 
 	return writeOutput(formatted, opts, inputFile)
+}
+
+// validateOutput fails the run when formatting changed what the document means.
+// A rejected difference is a djot-fmt bug rather than a problem with the input,
+// so the message says so and points at the issue tracker.
+func validateOutput(opts *Options, input []byte, formatted, inputFile string) error {
+	if opts.NoValidate {
+		return nil
+	}
+
+	result := validate.Compare(input, []byte(formatted), validate.Options{FromMD: opts.FromMD})
+
+	displayName := inputFile
+	if displayName == "" {
+		displayName = "stdin"
+	}
+
+	for _, d := range result.Waived {
+		fmt.Fprintf(os.Stderr, "%s: waived by --from-md: %s: %s\n", displayName, d.Category, d.Detail)
+	}
+
+	if result.OK() {
+		return nil
+	}
+
+	fmt.Fprintf(os.Stderr, "%s: formatting changed the document, which is a bug in djot-fmt\n", displayName)
+
+	for _, d := range result.Rejected {
+		fmt.Fprintf(os.Stderr, "  %s: %s\n", d.Category, d.Detail)
+	}
+
+	fmt.Fprintln(os.Stderr, "Please report this at "+issueTracker)
+	fmt.Fprintln(os.Stderr, "Use --no-validate to skip this check.")
+
+	return errValidationFailed
 }
 
 func readInput(inputFile string) ([]byte, error) {

@@ -115,6 +115,28 @@ func TestParseArgs(t *testing.T) {
 			},
 		},
 		{
+			name: "no validate",
+			args: []string{"--no-validate", "file.djot"},
+			want: &iohelper.Options{
+				InputFiles: []string{"file.djot"},
+				NoValidate: true,
+				SlwMarkers: ".!?",
+				SlwWrap:    88,
+				SlwMinLine: 40,
+			},
+		},
+		{
+			name: "from md",
+			args: []string{"--from-md", "file.djot"},
+			want: &iohelper.Options{
+				InputFiles: []string{"file.djot"},
+				FromMD:     true,
+				SlwMarkers: ".!?",
+				SlwWrap:    88,
+				SlwMinLine: 40,
+			},
+		},
+		{
 			name: "custom slw markers",
 			args: []string{"--slw-markers", ".!?;", "file.djot"},
 			want: &iohelper.Options{

@@ -276,3 +276,52 @@ func TestProcessFile_WritePermissionDenied(t *testing.T) {
 	require.Error(t, err, "should fail to write to read-only file")
 	assert.Contains(t, err.Error(), "writing to file")
 }
+
+func TestProcessFile_ValidationRejectsCorruption(t *testing.T) {
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "front.dj")
+
+	input := "---\ntitle: Hi\n---\n\nbody\n"
+	require.NoError(t, os.WriteFile(inputFile, []byte(input), 0o600))
+
+	opts := defaultTestOptions()
+	opts.Write = true
+	opts.InputFiles = []string{inputFile}
+
+	require.Error(t, iohelper.ProcessFile(opts, inputFile))
+
+	unchanged, readErr := os.ReadFile(inputFile)
+	require.NoError(t, readErr)
+	assert.Equal(t, input, string(unchanged), "a rejected format must not reach the file")
+}
+
+func TestProcessFile_NoValidateAllowsCorruption(t *testing.T) {
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "front.dj")
+
+	input := "---\ntitle: Hi\n---\n\nbody\n"
+	require.NoError(t, os.WriteFile(inputFile, []byte(input), 0o600))
+
+	opts := defaultTestOptions()
+	opts.Write = true
+	opts.NoValidate = true
+	opts.InputFiles = []string{inputFile}
+
+	require.NoError(t, iohelper.ProcessFile(opts, inputFile))
+}
+
+func TestProcessFile_FromMDWaivesListNesting(t *testing.T) {
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "nested.dj")
+
+	require.NoError(t, os.WriteFile(inputFile, []byte("- a\n  - b\n"), 0o600))
+
+	opts := defaultTestOptions()
+	opts.Write = true
+	opts.InputFiles = []string{inputFile}
+
+	require.Error(t, iohelper.ProcessFile(opts, inputFile))
+
+	opts.FromMD = true
+	require.NoError(t, iohelper.ProcessFile(opts, inputFile))
+}
