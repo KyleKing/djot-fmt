@@ -150,23 +150,6 @@ from panics, because a panic crossing into C terminates the host process, which 
 Python caller means killing the interpreter. Strings allocated on the Go side are freed
 through `DjotFree`.
 
-## Project Structure
-
-```
-.
-├── main.go              # CLI entry point
-├── internal/
-│   ├── formatter/       # Core formatting logic
-│   │   ├── formatter.go
-│   │   ├── writer.go
-│   │   └── formatter_test.go
-│   └── iohelper/        # File I/O and argument parsing
-│       ├── args.go
-│       ├── process.go
-│       └── args_test.go
-└── testdata/            # Test fixtures
-```
-
 ## Roadmap
 
 Future enhancements under consideration:

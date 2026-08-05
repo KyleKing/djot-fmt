@@ -12,25 +12,6 @@ This file provides guidance to AI coding assistants working with this codebase.
 
 ## Architecture
 
-### Structure
-
-```
-├── cmd/djot-fmt/        # CLI entry point
-├── bindings/
-│   ├── cshared/         # cgo boundary exposing the formatter as a C shared library
-│   └── python/          # ctypes wrapper, console script, and hatchling build hook
-├── internal/
-│   ├── formatter/       # Core formatting logic
-│   │   ├── formatter.go  # Node conversion functions
-│   │   ├── writer.go     # Output writer with state tracking
-│   │   └── formatter_test.go
-│   ├── iohelper/        # File I/O and CLI argument handling
-│   │   ├── args.go       # Command-line argument parsing
-│   │   └── process.go    # File reading/writing logic
-│   └── slw/             # Semantic line wrapping
-└── testdata/            # Test fixtures
-```
-
 ### Key Design Patterns
 
 **Conversion System** - Uses godjot's generic conversion pattern:
