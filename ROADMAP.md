@@ -75,6 +75,57 @@ Design notes:
 - Wire the same check into the fuzz corpus. godjot already has `djot_fuzz_test.go` to
   copy from, and "parse, format, reparse, compare HTML" is a natural fuzz property
 
+### Formatting markdown as djot legitimately changes the parse
+
+A plain boolean check is too blunt for the case where the input is markdown-shaped, and
+the reason is sharper than I expected. djot requires a blank line before a nested list,
+and markdown does not:
+
+```
+- a          ->  <ul> <li> a - b </li> </ul>
+  - b
+
+- a          ->  <ul> <li> a <ul> <li> b </li> </ul> </li> </ul>
+             (blank line)
+  - b
+```
+
+Without the blank line godjot reads `- b` as lazy continuation text. Four-space
+indentation does not help either. So a formatter that inserts that blank line is doing
+the right thing, and it necessarily changes both the tree and the text, since the `-`
+stops being a literal character and becomes structure. Any check strict enough to catch
+frontmatter loss rejects this too.
+
+The fix is to classify the difference rather than reduce it to a boolean. Diff the two
+normalized HTML trees, label each difference, and apply a per-category policy:
+
+| Category | Meaning | Default | `--from-md` |
+| --- | --- | --- | --- |
+| `text` | The word multiset changed beyond absorbed list markers | Reject | Reject |
+| `block-kind` | A block changed element (`<p>` became `<hr>`, `<h1>`, `<blockquote>`) | Reject | Reject |
+| `list-attrs` | `start` or `type` on `<ol>` changed | Reject | Reject |
+| `list-nesting` | A `<ul>`/`<ol>` level appeared or disappeared | Reject | Allow |
+| `loose-tight` | An `<li>` gained or lost its `<p>` wrapper | Reject | Allow |
+| anything else | Unclassified | Reject | Reject |
+
+`--from-md` therefore widens exactly two categories, both of which are the documented
+markdown-to-djot list differences, and nothing else moves.
+
+The frontmatter case is worth tracing, because it shows why one rule is not enough. Today
+the corruption is `<p><hr> title: Hi</p>` becoming `<hr> <hr> <p>title: Hi</p>`, where the
+words `title:` and `Hi` survive. A word-multiset floor alone would pass it, and
+`block-kind` is what catches it. A future bug that drops the block entirely would trip
+`text` instead. Both paths need to stay closed, under every flag.
+
+Two supporting rules. The word multiset is the floor and no flag relaxes it, with the
+only permitted subtraction being a leading list-marker token that became structure
+(`-`, `*`, `+`, `1.`, `a.`), which is what makes the nested-list case classifiable rather
+than a text loss. And once M3 lands, frontmatter is compared byte-for-byte outside this
+system entirely, so no HTML category governs it.
+
+`--from-md` should also print what it waived, per file. A flag that silently permits
+structural change is one people leave on, and the report is what keeps it honest.
+
 ## M2: buffer inline output per block
 
 `Writer` gains an inline buffer. Block formatters open the buffer, let children render
@@ -118,11 +169,12 @@ first item is not `1`, and `type` carries the enumerator marker. `formatListItem
   first marker
 - Preserve the delimiter (`1.`, `1)`, `(1)`) rather than normalizing to `.`
 
-Roman is a separate problem and it is upstream. godjot renders `i.`/`ii.` as
-`<ol start="9" type="a">`, so it never recognizes roman enumerators at all. Either fix
-`detectListProps` in godjot and upstream it, or detect the style in djot-fmt before
-parsing. Worth scoping before committing to the fix, and worth noting that M1 will flag
-any half-fix as a validation failure rather than letting it through.
+Roman enumerators and the delimiter are both upstream problems, written up in
+[docs/upstream-godjot.md](docs/upstream-godjot.md). godjot never recognizes roman at all,
+and it tracks the delimiter well enough to split lists on a style change but does not
+record it on the node. Delimiter preservation depends on that upstream fix or on
+pre-scanning the source. M1 will flag any half-fix as a validation failure rather than
+letting it through.
 
 Then the one genuinely optional part:
 
@@ -254,17 +306,36 @@ would work and is platform-specific enough that it is a project rather than a fe
 
 ### What I would do instead
 
-Trust, recorded per config file, in the direnv shape:
+Copy `mise trust`, which already draws the line in the right place. Its own help text
+states the principle:
 
-- Commands are read only from a config file whose path and content hash are in a
-  user-level trust store (`~/.config/djot-fmt/trust.toml`)
-- An untrusted or changed config with a `[code]` section is refused, the run continues
-  with code formatting skipped, and stderr prints the offending commands plus
-  `djot-fmt trust <path>` to allow them
-- Editing the config invalidates the trust, so approval covers the content you read and
-  not the file forever
-- Everything else in the config (frontmatter, numbering, slw) stays freely discoverable,
-  since none of it executes anything
+> Safe config files do not require trust: files that only contain `min_version`,
+> `[tools]` entries with plain version strings (or arrays of them), and `[tasks]` (no
+> templates and no tool options) are loaded without prompting, since nothing in them
+> executes code at load time.
+
+So trust is keyed on what the file contains, not on the file existing. Applied here:
+
+- A config with no `[code]` section is loaded without prompting, always. Frontmatter,
+  numbering, and slw settings execute nothing, so gating them on trust would train
+  people to approve reflexively, which is how a trust prompt stops working
+- A config with a `[code]` section is checked against a user-level store of path and
+  content hash. Untrusted means the run continues with code formatting skipped and
+  stderr naming the commands it refused
+- Editing the config invalidates the trust, so approval covers content that was read
+  rather than the file forever
+
+Worth taking from mise beyond the core idea: `djot-fmt trust --show` to report the trust
+state of every config on the path from cwd upward, and `--ignore` to record a permanent
+deny so a repo you do not control stops asking. Its CI behavior is the one piece I would
+invert. mise assumes trust in detected CI, which suits a tool people invoke deliberately.
+A formatter running in CI over a pull request from a fork is the exact scenario this
+protects against, so require the explicit flag there.
+
+Two smaller measures on top. Parse the command into argv and `exec` it directly with no
+`sh -c`, so shell metacharacters cannot chain a second command even in a trusted config.
+And skip discovery entirely in stdin mode, where there is no input path to anchor to and
+the ambient working directory is a poor proxy.
 
 Two smaller measures on top. Parse the command into argv and `exec` it directly with no
 `sh -c`, so shell metacharacters cannot chain a second command even in a trusted config.
@@ -404,7 +475,8 @@ format freezes once the option set stops moving.
 1. Does yak-shears want `[[wikilinks]]` parsed by djot-fmt, or only read?
 2. Is mdformat-slw's language data allowed to become generated-from-TOML, or does it
    need to stay hand-editable Python?
-3. Roman list enumerators are broken in godjot itself. Upstream a fix, work around it
-   locally, or accept the loss and document it?
+3. Both godjot findings in [docs/upstream-godjot.md](docs/upstream-godjot.md): upstream a
+   fix, work around locally, or accept the loss and document it? The delimiter one is
+   cheap enough that it is probably worth a PR regardless
 4. Should `--check` grow a `--diff` split, so CI can print the diff without the exit
    code and vice versa?
