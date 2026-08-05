@@ -31,6 +31,10 @@ sorts after `template.toml` (`user.toml` works; `project.toml` does not, since
 | `mise run format` | Auto-fix lint and formatting |
 | `mise run hooks` | Run git hooks |
 | `mise run lint` | Run linter |
+| `mise run python:build` | Build the platform wheel (compiles the c-shared library) |
+| `mise run python:lint` | Lint the Python bindings with ruff |
+| `mise run python:test` | Run the Python binding tests |
+| `mise run python:types` | Type check the Python bindings with ty |
 | `mise run test` | Run tests with coverage |
 | `mise run test:coverage-min` | Fail below the 70% coverage threshold |
 | `mise run test:view-coverage` | Open the coverage report in a browser |
@@ -39,6 +43,11 @@ sorts after `template.toml` (`user.toml` works; `project.toml` does not, since
 ## Code Guidelines
 
 Follow [AGENTS.md](AGENTS.md) for code organization, testing patterns, and error handling.
+[docs/go-best-practices.md](docs/go-best-practices.md) carries the worked examples.
+[docs/publishing-python-from-go.md](docs/publishing-python-from-go.md) covers the cgo
+boundary, the wheel build, and the release matrix. Read it before touching anything
+under `bindings/`, because a mistake there kills the caller's interpreter instead of
+raising.
 
 Linting is configured in `.golangci.toml` with 40+ rules. Run `mise run format` to auto-fix.
 
@@ -109,6 +118,13 @@ brew install --cask KyleKing/tap/djot-fmt
 
 The push needs a `TAP_DEPLOY_KEY` secret scoped to the tap repo; run `scripts/provision-tap-deploy-key.sh` to create it. Without the secret the release still publishes every binary and skips the cask with a warning.
 
+### Publishing to PyPI
+
+The same `v*` tag triggers `.github/workflows/publish_python.yml`, which builds one
+wheel per platform on a native runner, publishes over OIDC trusted publishing, and
+then reinstalls every wheel from PyPI to prove it runs. A `workflow_dispatch` run
+publishes to TestPyPI instead. See
+[docs/publishing-python-from-go.md](docs/publishing-python-from-go.md).
 
 ## Troubleshooting
 
@@ -119,5 +135,6 @@ go test -v -run TestName ./package  # Debug specific test
 go test ./... -update  # Refresh golden fixtures, where the project has them
 ```
 
-Golden files are byte-exact snapshots, so `hk.pkl` excludes `**/*.golden` from every
-whitespace fixer. Regenerate them with `-update` and review the diff; never hand-edit.
+[docs/troubleshooting.md](docs/troubleshooting.md) covers the toolchain failures that
+look like project bugs: an empty `GOPROXY` from a corrupt mise Go install, a
+`compile` loaded from a second `GOROOT`, and golden fixtures rewritten on commit.

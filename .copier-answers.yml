@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier
-_commit: v0.9.2
+_commit: v0.10.0
 _src_path: gh:KyleKing/my_go_template
 author_email: dev.act.kyle@gmail.com
 author_name: Kyle King
@@ -10,6 +10,7 @@ module_path: github.com/KyleKing/djot-fmt
 project_description: Automatic formatter for djot markup files
 project_name: djot-fmt
 project_type: cli
+publish_python: true
 repository_namespace: KyleKing
 repository_provider: https://github.com
 use_goreleaser: true

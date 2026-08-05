@@ -22,6 +22,8 @@ jobs:
         include:
           - {target: linux-x86_64, runner: ubuntu-24.04, container: quay.io/pypa/manylinux_2_28_x86_64}
           - {target: linux-aarch64, runner: ubuntu-24.04-arm, container: quay.io/pypa/manylinux_2_28_aarch64}
+          # macos-15-intel is the last x86_64 macOS image, available until August
+          # 2027, after which this target cannot be built natively
           - {target: macos-x86_64, runner: macos-15-intel}
           - {target: macos-arm64, runner: macos-15}
           - {target: windows-x86_64, runner: windows-2025}

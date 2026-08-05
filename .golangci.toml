@@ -67,7 +67,7 @@ enable = [
   "ineffassign",
   "interfacebloat",
   "intrange",
-  "ireturn",  # revisit: BubbleTea Init/Update methods return interfaces by design
+  "ireturn",
   "lll",
   "loggercheck",
   "maintidx",
@@ -122,8 +122,10 @@ path = "_test\\.go"
 linters = ["cyclop", "goconst"]
 
 [[linters.exclusions.rules]]
-# cgo rewrites this package before analysis, so these linters report on generated
-# declarations and on line numbers that do not correspond to the source.
+# The cgo shim reports issues no edit can fix. staticcheck and nonamedreturns see
+# the symbols cgo generates rather than the source, gocritic counts the mandatory
+# `import "C"` alongside `unsafe` as a duplicate import, and the named return on
+# each exported function is what lets the deferred recover() replace the result.
 path = "bindings/cshared/"
 linters = ["gocritic", "nlreturn", "nonamedreturns", "staticcheck"]
 
@@ -160,7 +162,10 @@ enabled-tags = [
   "experimental",
   "opinionated"
 ]
-disabled-checks = ["whyNoLint"]
+disabled-checks = [
+  "hugeParam",  # BubbleTea root Models are large by design; value receivers keep Update/View copy semantics
+  "whyNoLint"
+]
 
 [linters.settings.gocyclo]
 min-complexity = 15
@@ -174,7 +179,15 @@ enable-all = true
 disable = ["shadow"]
 
 [linters.settings.ireturn]
-allow = ["error", "empty", "stdlib"]
+# Bubble Tea v2 moved to charm.land; both paths are listed so a project on either
+# major version lints clean, because Model.Update returns the tea.Model interface.
+allow = [
+  "error",
+  "empty",
+  "stdlib",
+  "charm.land/bubbletea/v2.Model",
+  "github.com/charmbracelet/bubbletea.Model"
+]
 
 [linters.settings.lll]
 line-length = 120

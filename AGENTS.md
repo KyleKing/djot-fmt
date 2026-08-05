@@ -1,8 +1,12 @@
 # AI Agent Guidelines for djot-fmt
 
 How to work in this Go project. Architecture and domain context live in
-[DESIGN.md](DESIGN.md); task and release mechanics live in
-[CONTRIBUTING.md](CONTRIBUTING.md). This file covers only what those two do not.
+[DESIGN.md](DESIGN.md), task and release mechanics live in
+[CONTRIBUTING.md](CONTRIBUTING.md), worked code examples live in
+[docs/go-best-practices.md](docs/go-best-practices.md), and toolchain failures live
+in [docs/troubleshooting.md](docs/troubleshooting.md). This file covers only what
+those do not. The cgo boundary and the PyPI release live in
+[docs/publishing-python-from-go.md](docs/publishing-python-from-go.md).
 
 ## Verify before you report
 
@@ -41,12 +45,9 @@ report what you found.
 
 ## Layout
 
-```
-djot-fmt/
-├── cmd/djot-fmt/  # main package, kept thin
-├── internal/         # private packages; the compiler blocks outside imports
-└── go.mod
-```
+The entry point lives in `cmd/djot-fmt/` and stays thin, delegating to
+`internal/`. The compiler blocks imports of `internal/` from outside this module,
+so anything under it can change freely.
 
 One package, one purpose. Short lowercase names, no underscores (`httputil`, not
 `http_util`), and no grab-bags (`util`, `common`, `misc`). Name a file after the
@@ -70,6 +71,9 @@ Avoid: naked returns, functions past ~50 lines, deep nesting (return early), ign
 errors (`_ = doThing()` is almost always wrong), and shared global state (pass
 dependencies explicitly).
 
+[docs/go-best-practices.md](docs/go-best-practices.md) has a worked example of each
+pattern above, plus the package layout rules and the anti-pattern list in full.
+
 ## Testing
 
 Table-driven tests with subtests via `t.Run`, placed next to the code they cover, in a
@@ -86,9 +90,14 @@ commit; either rename it or add its glob to that exclude.
 A subprocess pipe is not a terminal, so the program detects a non-tty and never renders.
 Exploratory checks need a real PTY: run it under `tmux new -d -x 80 -y 24 <cmd>`, drive
 it with `tmux send-keys`, and read what actually rendered with `tmux capture-pane -p`
-(`-e` keeps ANSI codes). For scripted tests prefer
+(`-e` keeps ANSI codes). A tab in captured output is not proof the program emitted one:
+`tmux capture-pane` re-emits a tab wherever the cursor was advanced across cells that
+were never written. Check which column the text actually lands on before chasing it as
+a rendering bug. For scripted tests prefer
 `github.com/charmbracelet/x/exp/teatest`, which drives the `tea.Model` directly and
-diffs golden frames; fall back to `github.com/creack/pty` for non-Bubble Tea binaries.
+diffs golden frames; on Bubble Tea v2 that import is
+`github.com/charmbracelet/x/exp/teatest/v2`, because the unsuffixed module targets v1.
+Fall back to `github.com/creack/pty` for non-Bubble Tea binaries.
 
 Exercise deliberately, because each of these renders fine in the happy path and breaks
 elsewhere: resize mid-session (`SIGWINCH`) and the minimum supported size; every quit
@@ -118,5 +127,8 @@ hook blocks committing them). Two specifics:
   that the patch needs re-applying.** Read `.copier-answers.yml` first and fix the
   answer; a typo there gets faithfully re-rendered every pass.
 
-A directory may add its own `AGENTS.md` to extend or override this file for the code
-under it. Template updates never overwrite any `AGENTS.md`.
+This file is template-owned and `copier update` keeps it current. Put project-specific
+guidance in `AGENTS.local.md` (loaded below when present) or in a nested `AGENTS.md`
+scoped to its directory.
+
+@AGENTS.local.md
