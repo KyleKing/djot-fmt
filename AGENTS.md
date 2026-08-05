@@ -10,11 +10,12 @@ those do not. The cgo boundary and the PyPI release live in
 
 ## Verify before you report
 
-CI runs four jobs and `mise run ci` is only the first, so a green `mise run ci` is not
-a green build. Reproduce all four locally:
+CI runs five jobs and `mise run ci` is only the first, so a green `mise run ci` is not
+a green build. Reproduce all five locally:
 
 ```bash
 hk check --all                            # every hook step; also re-runs `mise run ci`
+mise exec -- actionlint                   # separate CI job; the validator for workflow YAML
 mise exec -- golangci-lint run ./...      # separate CI job, not an hk step
 mise exec -- golangci-lint config verify  # `run` accepts v1 schema keys silently
 mise run bench                            # compiles and runs the benchmarks
@@ -34,6 +35,10 @@ Known false negatives, each of which has already cost a session:
   code, so a failing hook looks like success and the follow-up push ships nothing.
   Commit as its own command, then confirm with `git log -1`. Hooks rewrite files here;
   when one fails that way, `git add -A` its edits and commit again.
+- **A workflow that passes yamllint can still be broken.** `hk.pkl` excludes
+  `.github/workflows/` from yamllint, and yamllint reads YAML syntax only. Runner
+  labels, expression syntax, `workflow_call` inputs, and embedded shell are
+  `actionlint`'s job, so edit a workflow and run `mise exec -- actionlint`.
 - **A release is verified by distinct hashes, not asset count.** Ten assets can be one
   binary published ten times. Confirm with
   `gh release download <tag> -p checksums.txt -O - | awk '{print $1}' | sort -u | wc -l`

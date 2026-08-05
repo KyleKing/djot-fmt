@@ -115,8 +115,10 @@ local linters = new Mapping<String, Step> {
     // relaxed ruleset is deliberate and must stay unstrict: it demotes style
     // rules to warnings so only YAML that fails to parse fails, the same reason
     // `Builtins.tombi` is absent above.
+    // actionlint validates GitHub workflow YAML, yamllint covers the rest.
     ["yamllint"] = (Builtins.yamllint) {
         check = "yamllint -d relaxed {{files}}"
+        exclude = List(".github/workflows/**")
     }
 }
 

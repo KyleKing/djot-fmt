@@ -15,6 +15,9 @@ jobs:
     # Fix 403 error (https://github.com/softprops/action-gh-release/issues/400)
     permissions:
       contents: write
+    outputs:
+      released: ${{ steps.bump.outputs.released }}
+      version: ${{ steps.bump.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -29,23 +32,34 @@ jobs:
 
       # REVISION == PREVIOUS_REVISION means commitizen found no bumpable commits
       # and cut no tag, so there is nothing to release.
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        if: env.REVISION != env.PREVIOUS_REVISION
-        with:
-          go-version-file: go.mod
+      - name: Record whether a release was cut
+        id: bump
+        run: |
+          if [ "$REVISION" = "$PREVIOUS_REVISION" ]; then
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "version=$REVISION" >> "$GITHUB_OUTPUT"
 
-      # Runs in the same workflow because tags pushed with GITHUB_TOKEN do not
-      # trigger other workflows, so a separate on-tag release workflow never fires.
-      - name: Build release binaries and publish release
-        if: env.REVISION != env.PREVIOUS_REVISION
-        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+      # goreleaser runs in the publish workflow, which cannot see this checkout.
+      - name: Upload the release notes
+        if: steps.bump.outputs.released == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          distribution: goreleaser
-          version: "~> v2"
-          args: release --clean --release-notes body.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Deploy key for the Homebrew tap push. Unset until
-          # scripts/provision-tap-deploy-key.sh has been run, which goreleaser
-          # treats as "skip the tap" rather than as a failure.
-          TAP_DEPLOY_KEY: ${{ secrets.TAP_DEPLOY_KEY }}
+          name: release-notes
+          path: body.md
+          if-no-files-found: error
+
+  # A called workflow runs inside this run, so it needs no tag trigger. Tags pushed
+  # with GITHUB_TOKEN never start one.
+  publish:
+    needs: [bump-version]
+    if: needs.bump-version.outputs.released == 'true'
+    uses: ./.github/workflows/publish.yml
+    with:
+      tag: v${{ needs.bump-version.outputs.version }}
+    secrets: inherit
+    permissions:
+      contents: write
+      id-token: write
