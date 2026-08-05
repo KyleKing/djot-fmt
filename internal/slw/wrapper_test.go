@@ -4,12 +4,15 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyleKing/djot-fmt/internal/slw"
 	"github.com/KyleKing/djot-fmt/internal/testutil"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestDefaultConfig(t *testing.T) {
+	t.Parallel()
+
 	config := slw.DefaultConfig()
 
 	assert.True(t, config.Enabled)
@@ -21,12 +24,14 @@ func TestDefaultConfig(t *testing.T) {
 }
 
 func TestFixtures(t *testing.T) {
+	t.Parallel()
+
 	fixtureFiles := []string{
 		"basic.txt",
 	}
 
 	for _, filename := range fixtureFiles {
-		path := filepath.Join("../../testdata/slw", filename)
+		path := filepath.Join("..", "..", "testdata", "slw", filename)
 
 		fixtures, err := testutil.ReadFixtures(path)
 		if err != nil {
@@ -35,6 +40,8 @@ func TestFixtures(t *testing.T) {
 
 		for _, fixture := range fixtures {
 			t.Run(fixture.Title, func(t *testing.T) {
+				t.Parallel()
+
 				config := testutil.ConfigFromOptions(fixture.Options)
 				result := slw.WrapText(fixture.Input, config)
 

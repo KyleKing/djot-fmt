@@ -1,62 +1,281 @@
 # Configuration file for golangci-lint
 # For more options, see https://golangci-lint.run/usage/configuration/
 
+version = "2"
+
+[formatters]
+enable = ["gci", "gofmt", "gofumpt", "goimports"]
+
+[formatters.settings.gci]
+sections = ["standard", "default", "prefix(github.com/KyleKing/djot-fmt)"]
+
+[formatters.settings.gofumpt]
+extra-rules = true
+
+[formatters.settings.goimports]
+local-prefixes = ["github.com/KyleKing/djot-fmt"]
+
 [linters]
-default = "standard"
-disabled = [
-  "forbidigo"  # forbids identifiers matched by reg exps
+disable = [
+  "depguard",  # requires allowlist/denylist configuration
+  "forbidigo",  # requires custom regex configuration
+  "gochecknoglobals",  # BubbleTea/lipgloss styles use package-level vars
+  "goheader",  # copyright headers add noise for personal projects
+  "wsl"  # whitespace linting too nitpicky
 ]
 enable = [
   "asciicheck",
+  "bidichk",
   "bodyclose",
+  "containedctx",
+  "contextcheck",
   "copyloopvar",
   "cyclop",
+  "decorder",
+  "dogsled",
+  "dupl",
+  "dupword",
   "durationcheck",
+  "err113",
   "errcheck",
+  "errchkjson",
+  "errname",
   "errorlint",
+  "exhaustive",
   "fatcontext",
+  "forcetypeassert",
+  "funlen",
+  "ginkgolinter",
+  "gocheckcompilerdirectives",
+  "gochecknoinits",
+  "gochecksumtype",
+  "gocognit",
+  "goconst",
   "gocritic",
-  "goimports",
+  "gocyclo",
+  "godot",
+  "godox",
   "gomoddirectives",
-  "gomodguard",
+  "goprintffuncname",
   "gosec",
-  "gosimple",
+  "gosmopolitan",
   "govet",
+  "grouper",
   "iface",
+  "importas",
+  "inamedparam",
   "ineffassign",
+  "interfacebloat",
   "intrange",
+  "ireturn",  # revisit: BubbleTea Init/Update methods return interfaces by design
+  "lll",
+  "loggercheck",
+  "maintidx",
+  "makezero",
+  "mirror",
   "misspell",
+  "mnd",
+  "musttag",
   "nakedret",
+  "nestif",
   "nilerr",
+  "nilnil",
+  "nlreturn",
   "noctx",
   "nolintlint",
+  "nonamedreturns",
+  "nosprintfhostport",
+  "paralleltest",
   "perfsprint",
   "prealloc",
   "predeclared",
+  "promlinter",
+  "protogetter",
+  "reassign",
   "revive",
+  "rowserrcheck",
+  "sloglint",
+  "spancheck",
   "sqlclosecheck",
   "staticcheck",
-  "stylecheck",
+  "tagalign",
+  "tagliatelle",
+  "testableexamples",
   "testifylint",
   "testpackage",
-  "typecheck",
+  "thelper",
+  "tparallel",
   "unconvert",
+  "unparam",
   "unused",
+  "usestdlibvars",
+  "usetesting",
   "wastedassign",
+  "whitespace",
   "wrapcheck",
-  "wsl"
+  "zerologlint"
 ]
-relative-path-mode = "gomod"
 
-[linters.settings]
+[[linters.exclusions.rules]]
+# Table-driven tests grow long cases and repeat literals without adding real complexity.
+path = "_test\\.go"
+linters = ["cyclop", "goconst"]
+
+[[linters.exclusions.rules]]
+# cgo rewrites this package before analysis, so these linters report on generated
+# declarations and on line numbers that do not correspond to the source.
+path = "bindings/cshared/"
+linters = ["gocritic", "nlreturn", "nonamedreturns", "staticcheck"]
+
+[linters.settings.cyclop]
+max-complexity = 15
+
+[linters.settings.dupl]
+threshold = 100
+
+[linters.settings.errcheck]
+check-type-assertions = true
+check-blank = true
+
+[linters.settings.exhaustive]
+default-signifies-exhaustive = true
+
+[linters.settings.funlen]
+lines = 100
+statements = 50
+ignore-comments = true
+
+[linters.settings.gocognit]
+min-complexity = 20
+
+[linters.settings.goconst]
+min-len = 3
+min-occurrences = 3
+
+[linters.settings.gocritic]
+enabled-tags = [
+  "diagnostic",
+  "style",
+  "performance",
+  "experimental",
+  "opinionated"
+]
+disabled-checks = ["whyNoLint"]
+
+[linters.settings.gocyclo]
+min-complexity = 15
+
+[linters.settings.godot]
+scope = "declarations"
+capital = true
+
+[linters.settings.govet]
+enable-all = true
+disable = ["shadow"]
+
+[linters.settings.ireturn]
+allow = ["error", "empty", "stdlib"]
+
+[linters.settings.lll]
+line-length = 120
+tab-width = 4
+
+[linters.settings.misspell]
+locale = "US"
+
+[linters.settings.mnd]
+ignored-functions = ["make", "strconv.*"]
+
+[linters.settings.nakedret]
+max-func-lines = 30
+
+[linters.settings.nestif]
+min-complexity = 5
+
+[linters.settings.nlreturn]
+block-size = 2
+
+[linters.settings.nolintlint]
+allow-unused = false
+require-explanation = true
+require-specific = true
+
 [linters.settings.revive]
-enable-all-rules = true
+enable-all-rules = false
+rules = [
+  { name = "atomic" },
+  { name = "blank-imports" },
+  { name = "bool-literal-in-expr" },
+  { name = "call-to-gc" },
+  { name = "confusing-naming" },
+  { name = "constant-logical-expr" },
+  { name = "context-as-argument" },
+  { name = "context-keys-type" },
+  { name = "defer" },
+  { name = "dot-imports" },
+  { name = "early-return" },
+  { name = "empty-block" },
+  { name = "empty-lines" },
+  { name = "error-naming" },
+  { name = "error-return" },
+  { name = "error-strings" },
+  { name = "errorf" },
+  { name = "exported" },
+  { name = "if-return" },
+  { name = "import-shadowing" },
+  { name = "increment-decrement" },
+  { name = "indent-error-flow" },
+  { name = "modifies-parameter" },
+  { name = "modifies-value-receiver" },
+  { name = "package-comments" },
+  { name = "range" },
+  { name = "range-val-address" },
+  { name = "range-val-in-closure" },
+  { name = "receiver-naming" },
+  { name = "redefines-builtin-id" },
+  { name = "string-of-int" },
+  { name = "struct-tag" },
+  { name = "superfluous-else" },
+  { name = "time-equal" },
+  { name = "time-naming" },
+  { name = "unexported-naming" },
+  { name = "unexported-return" },
+  { name = "unnecessary-stmt" },
+  { name = "unreachable-code" },
+  { name = "unused-parameter" },
+  { name = "unused-receiver" },
+  { name = "use-any" },
+  { name = "useless-break" },
+  { name = "var-declaration" },
+  { name = "var-naming" },
+  { name = "waitgroup-by-value" }
+]
 
 [linters.settings.staticcheck]
-checks = ["all"]
+checks = ["all", "-ST1000"]
+
+[linters.settings.tagliatelle]
+case.rules.json = "snake"
+case.rules.yaml = "kebab"
 
 [linters.settings.testifylint]
 enable-all = true
 
+[linters.settings.unparam]
+check-exported = true
+
+[linters.settings.wrapcheck]
+ignore-sigs = [
+  ".Errorf(",
+  "errors.New(",
+  "errors.Unwrap(",
+  "errors.Join(",
+  ".Wrap(",
+  ".Wrapf(",
+  ".WithMessage(",
+  ".WithMessagef(",
+  ".WithStack("
+]
+
 [run]
-timeout = "1m"
+timeout = "5m"

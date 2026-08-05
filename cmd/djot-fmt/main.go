@@ -1,3 +1,4 @@
+// Command djot-fmt formats djot files.
 package main
 
 import (
@@ -7,6 +8,8 @@ import (
 
 	"github.com/KyleKing/djot-fmt/internal/iohelper"
 )
+
+var errFilesFailed = errors.New("one or more files had errors")
 
 var (
 	version = "dev"
@@ -61,7 +64,7 @@ func run() error {
 	}
 
 	if hasError {
-		return errors.New("one or more files had errors")
+		return errFilesFailed
 	}
 
 	return nil

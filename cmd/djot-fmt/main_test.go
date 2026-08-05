@@ -1,6 +1,8 @@
+//nolint:gosec // Every path and binary here is built from t.TempDir(), never from user input.
 package main
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,7 +18,7 @@ func buildBinary(t *testing.T) string {
 	tmpDir := t.TempDir()
 	binaryPath := filepath.Join(tmpDir, "djot-fmt")
 
-	cmd := exec.Command("go", "build", "-o", binaryPath)
+	cmd := exec.CommandContext(context.Background(), "go", "build", "-o", binaryPath)
 	output, err := cmd.CombinedOutput()
 	require.NoError(t, err, "Failed to build binary: %s", string(output))
 
@@ -24,19 +26,21 @@ func buildBinary(t *testing.T) string {
 }
 
 func TestIntegration_MultiFileCheckMode(t *testing.T) {
+	t.Parallel()
+
 	binary := buildBinary(t)
 	tmpDir := t.TempDir()
 
 	file1 := filepath.Join(tmpDir, "formatted.dj")
 	file2 := filepath.Join(tmpDir, "unformatted.dj")
 
-	err := os.WriteFile(file1, []byte("# Heading\n\nParagraph text.\n"), 0600)
+	err := os.WriteFile(file1, []byte("# Heading\n\nParagraph text.\n"), 0o600)
 	require.NoError(t, err)
 
-	err = os.WriteFile(file2, []byte("-  Item 1\n-  Item 2\n"), 0600)
+	err = os.WriteFile(file2, []byte("-  Item 1\n-  Item 2\n"), 0o600)
 	require.NoError(t, err)
 
-	cmd := exec.Command(binary, "-c", file1, file2)
+	cmd := exec.CommandContext(context.Background(), binary, "-c", file1, file2)
 	output, err := cmd.CombinedOutput()
 
 	require.Error(t, err, "Expected error in check mode for unformatted files")
@@ -44,38 +48,42 @@ func TestIntegration_MultiFileCheckMode(t *testing.T) {
 }
 
 func TestIntegration_MultiFileCheckMode_AllFormatted(t *testing.T) {
+	t.Parallel()
+
 	binary := buildBinary(t)
 	tmpDir := t.TempDir()
 
 	file1 := filepath.Join(tmpDir, "file1.dj")
 	file2 := filepath.Join(tmpDir, "file2.dj")
 
-	err := os.WriteFile(file1, []byte("# Heading\n\nParagraph.\n"), 0600)
+	err := os.WriteFile(file1, []byte("# Heading\n\nParagraph.\n"), 0o600)
 	require.NoError(t, err)
 
-	err = os.WriteFile(file2, []byte("- Item\n"), 0600)
+	err = os.WriteFile(file2, []byte("- Item\n"), 0o600)
 	require.NoError(t, err)
 
-	cmd := exec.Command(binary, "-c", file1, file2)
+	cmd := exec.CommandContext(context.Background(), binary, "-c", file1, file2)
 	output, err := cmd.CombinedOutput()
 
 	assert.NoError(t, err, "Expected no error for formatted files: %s", string(output))
 }
 
 func TestIntegration_MultiFileWriteMode(t *testing.T) {
+	t.Parallel()
+
 	binary := buildBinary(t)
 	tmpDir := t.TempDir()
 
 	file1 := filepath.Join(tmpDir, "file1.dj")
 	file2 := filepath.Join(tmpDir, "file2.dj")
 
-	err := os.WriteFile(file1, []byte("-  Item 1\n-  Item 2\n"), 0600)
+	err := os.WriteFile(file1, []byte("-  Item 1\n-  Item 2\n"), 0o600)
 	require.NoError(t, err)
 
-	err = os.WriteFile(file2, []byte("#  Heading\n\nText.\n"), 0600)
+	err = os.WriteFile(file2, []byte("#  Heading\n\nText.\n"), 0o600)
 	require.NoError(t, err)
 
-	cmd := exec.Command(binary, "-w", file1, file2)
+	cmd := exec.CommandContext(context.Background(), binary, "-w", file1, file2)
 	output, err := cmd.CombinedOutput()
 	require.NoError(t, err, "Write mode failed: %s", string(output))
 
@@ -89,16 +97,18 @@ func TestIntegration_MultiFileWriteMode(t *testing.T) {
 }
 
 func TestIntegration_OutputFileWithSingleInput(t *testing.T) {
+	t.Parallel()
+
 	binary := buildBinary(t)
 	tmpDir := t.TempDir()
 
 	inputFile := filepath.Join(tmpDir, "input.dj")
 	outputFile := filepath.Join(tmpDir, "output.dj")
 
-	err := os.WriteFile(inputFile, []byte("-  Item\n"), 0600)
+	err := os.WriteFile(inputFile, []byte("-  Item\n"), 0o600)
 	require.NoError(t, err)
 
-	cmd := exec.Command(binary, "-o", outputFile, inputFile)
+	cmd := exec.CommandContext(context.Background(), binary, "-o", outputFile, inputFile)
 	output, err := cmd.CombinedOutput()
 	require.NoError(t, err, "Output file mode failed: %s", string(output))
 
@@ -112,6 +122,8 @@ func TestIntegration_OutputFileWithSingleInput(t *testing.T) {
 }
 
 func TestIntegration_OutputFileWithMultipleInputs_Fails(t *testing.T) {
+	t.Parallel()
+
 	binary := buildBinary(t)
 	tmpDir := t.TempDir()
 
@@ -119,13 +131,13 @@ func TestIntegration_OutputFileWithMultipleInputs_Fails(t *testing.T) {
 	file2 := filepath.Join(tmpDir, "file2.dj")
 	outputFile := filepath.Join(tmpDir, "output.dj")
 
-	err := os.WriteFile(file1, []byte("Text 1\n"), 0600)
+	err := os.WriteFile(file1, []byte("Text 1\n"), 0o600)
 	require.NoError(t, err)
 
-	err = os.WriteFile(file2, []byte("Text 2\n"), 0600)
+	err = os.WriteFile(file2, []byte("Text 2\n"), 0o600)
 	require.NoError(t, err)
 
-	cmd := exec.Command(binary, "-o", outputFile, file1, file2)
+	cmd := exec.CommandContext(context.Background(), binary, "-o", outputFile, file1, file2)
 	output, err := cmd.CombinedOutput()
 
 	require.Error(t, err, "Expected error when using -o with multiple files")
@@ -133,6 +145,8 @@ func TestIntegration_OutputFileWithMultipleInputs_Fails(t *testing.T) {
 }
 
 func TestIntegration_InfoFlags(t *testing.T) {
+	t.Parallel()
+
 	binary := buildBinary(t)
 
 	tests := []struct {
@@ -146,7 +160,9 @@ func TestIntegration_InfoFlags(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmd := exec.Command(binary, tt.flag)
+			t.Parallel()
+
+			cmd := exec.CommandContext(context.Background(), binary, tt.flag)
 			output, err := cmd.CombinedOutput()
 			require.NoError(t, err)
 

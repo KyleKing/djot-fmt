@@ -1,3 +1,4 @@
+// Package iohelper parses command line options and drives file formatting.
 package iohelper
 
 import (
@@ -7,22 +8,38 @@ import (
 	"strings"
 )
 
+const (
+	defaultSlwWrap    = 88
+	defaultSlwMinLine = 40
+)
+
+var (
+	errUnknownFlag     = errors.New("unknown flag")
+	errFlagNeedsValue  = errors.New("requires a value")
+	errWriteWithOutput = errors.New("cannot use both -w and -o")
+	errWriteNeedsFile  = errors.New("-w requires at least one input file (cannot use with stdin)")
+	errOutputOneFile   = errors.New("-o can only be used with a single input file")
+	errCheckWithWrite  = errors.New("-c cannot be used with -w or -o")
+)
+
+// Options holds the parsed command line configuration.
 type Options struct {
-	InputFiles      []string
 	OutputFile      string
+	SlwMarkers      string
+	InputFiles      []string
+	SlwWrap         int
+	SlwMinLine      int
 	Write           bool
 	Check           bool
 	NoWrapSentences bool
-	SlwMarkers      string
-	SlwWrap         int
-	SlwMinLine      int
 }
 
+// ParseArgs converts command line arguments into validated Options.
 func ParseArgs(args []string) (*Options, error) {
 	opts := &Options{
 		SlwMarkers: ".!?",
-		SlwWrap:    88,
-		SlwMinLine: 40,
+		SlwWrap:    defaultSlwWrap,
+		SlwMinLine: defaultSlwMinLine,
 	}
 
 	var err error
@@ -64,7 +81,7 @@ func parseFlag(flag string, args []string, i int, opts *Options) (int, error) {
 	case "--slw-min-line":
 		return parseIntFlag(flag, args, i, &opts.SlwMinLine)
 	default:
-		return i, fmt.Errorf("unknown flag: %s", flag)
+		return i, fmt.Errorf("%w: %s", errUnknownFlag, flag)
 	}
 
 	return i, nil
@@ -72,7 +89,7 @@ func parseFlag(flag string, args []string, i int, opts *Options) (int, error) {
 
 func parseStringFlag(flag string, args []string, i int, target *string) (int, error) {
 	if i+1 >= len(args) {
-		return i, fmt.Errorf("%s requires a value", flag)
+		return i, fmt.Errorf("%s %w", flag, errFlagNeedsValue)
 	}
 
 	*target = args[i+1]
@@ -82,7 +99,7 @@ func parseStringFlag(flag string, args []string, i int, target *string) (int, er
 
 func parseIntFlag(flag string, args []string, i int, target *int) (int, error) {
 	if i+1 >= len(args) {
-		return i, fmt.Errorf("%s requires a value", flag)
+		return i, fmt.Errorf("%s %w", flag, errFlagNeedsValue)
 	}
 
 	val, err := strconv.Atoi(args[i+1])
@@ -97,19 +114,19 @@ func parseIntFlag(flag string, args []string, i int, target *int) (int, error) {
 
 func validateOptions(opts *Options) error {
 	if opts.Write && opts.OutputFile != "" {
-		return errors.New("cannot use both -w and -o")
+		return errWriteWithOutput
 	}
 
 	if opts.Write && len(opts.InputFiles) == 0 {
-		return errors.New("-w requires at least one input file (cannot use with stdin)")
+		return errWriteNeedsFile
 	}
 
 	if opts.OutputFile != "" && len(opts.InputFiles) > 1 {
-		return errors.New("-o can only be used with a single input file")
+		return errOutputOneFile
 	}
 
 	if opts.Check && (opts.Write || opts.OutputFile != "") {
-		return errors.New("-c cannot be used with -w or -o")
+		return errCheckWithWrite
 	}
 
 	return nil

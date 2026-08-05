@@ -3,15 +3,18 @@ package formatter_test
 import (
 	"testing"
 
-	"github.com/KyleKing/djot-fmt/internal/formatter"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyleKing/djot-fmt/internal/formatter"
 )
 
 func TestWriter_String_TrailingNewlineNormalization(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
-		writes   []string
 		expected string
+		writes   []string
 	}{
 		{
 			name:     "no trailing newline becomes single newline",
@@ -57,6 +60,8 @@ func TestWriter_String_TrailingNewlineNormalization(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			w := formatter.NewWriter()
 
 			for _, s := range tt.writes {
@@ -70,6 +75,8 @@ func TestWriter_String_TrailingNewlineNormalization(t *testing.T) {
 }
 
 func TestWriter_String_PreservesInternalNewlines(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		content  string
@@ -94,6 +101,8 @@ func TestWriter_String_PreservesInternalNewlines(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			w := formatter.NewWriter()
 			w.WriteString(tt.content)
 
@@ -104,6 +113,8 @@ func TestWriter_String_PreservesInternalNewlines(t *testing.T) {
 }
 
 func TestWriter_String_Idempotency(t *testing.T) {
+	t.Parallel()
+
 	tests := []string{
 		"Hello",
 		"Hello\n",
@@ -114,6 +125,8 @@ func TestWriter_String_Idempotency(t *testing.T) {
 
 	for _, input := range tests {
 		t.Run(input, func(t *testing.T) {
+			t.Parallel()
+
 			w1 := formatter.NewWriter()
 			w1.WriteString(input)
 			first := w1.String()

@@ -1,14 +1,50 @@
+// The godjot tokenizer records matched symbols in a package-level map, so parsing cannot run concurrently.
+//
+//nolint:paralleltest // Tests parse djot through godjot, whose tokenizer is not goroutine safe.
 package formatter_test
 
 import (
 	"path/filepath"
 	"testing"
 
-	"github.com/KyleKing/djot-fmt/internal/formatter"
-	"github.com/KyleKing/djot-fmt/internal/testutil"
 	"github.com/sivukhin/godjot/v2/djot_parser"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyleKing/djot-fmt/internal/formatter"
+	"github.com/KyleKing/djot-fmt/internal/testutil"
 )
+
+func fixturePath(filename string) string {
+	return filepath.Join("..", "..", "testdata", "formatter", filename)
+}
+
+func formatDefault(fixture testutil.Fixture) string {
+	return formatter.Format(djot_parser.BuildDjotAst([]byte(fixture.Input)))
+}
+
+func formatWithFixtureOptions(fixture testutil.Fixture) string {
+	config := testutil.ConfigFromOptions(fixture.Options)
+
+	return formatter.FormatWithConfig(djot_parser.BuildDjotAst([]byte(fixture.Input)), config)
+}
+
+func runFixtures(t *testing.T, filename string, format func(testutil.Fixture) string) {
+	t.Helper()
+
+	fixtures, err := testutil.ReadFixtures(fixturePath(filename))
+	if err != nil {
+		t.Fatalf("Failed to read fixtures: %v", err)
+	}
+
+	for _, fixture := range fixtures {
+		t.Run(fixture.Title, func(t *testing.T) {
+			if !assert.Equal(t, fixture.Expected, format(fixture)) {
+				t.Logf("Fixture: %s (line %d)", fixture.Title, fixture.LineNumber)
+				t.Logf("Input: %q", fixture.Input)
+			}
+		})
+	}
+}
 
 func TestFormat_AllNodeTypesSupported(t *testing.T) {
 	supportedInputs := []struct {
@@ -49,67 +85,15 @@ func TestFormat_SimpleParagraphAST(t *testing.T) {
 }
 
 func TestFormat_BasicFixtures(t *testing.T) {
-	path := filepath.Join("../../testdata/formatter", "basic.txt")
-
-	fixtures, err := testutil.ReadFixtures(path)
-	if err != nil {
-		t.Fatalf("Failed to read fixtures: %v", err)
-	}
-
-	for _, fixture := range fixtures {
-		t.Run(fixture.Title, func(t *testing.T) {
-			ast := djot_parser.BuildDjotAst([]byte(fixture.Input))
-			result := formatter.Format(ast)
-
-			if !assert.Equal(t, fixture.Expected, result) {
-				t.Logf("Fixture: %s (line %d)", fixture.Title, fixture.LineNumber)
-				t.Logf("Input: %q", fixture.Input)
-			}
-		})
-	}
+	runFixtures(t, "basic.txt", formatDefault)
 }
 
 func TestFormat_SLWFixtures(t *testing.T) {
-	path := filepath.Join("../../testdata/formatter", "slw.txt")
-
-	fixtures, err := testutil.ReadFixtures(path)
-	if err != nil {
-		t.Fatalf("Failed to read fixtures: %v", err)
-	}
-
-	for _, fixture := range fixtures {
-		t.Run(fixture.Title, func(t *testing.T) {
-			config := testutil.ConfigFromOptions(fixture.Options)
-			ast := djot_parser.BuildDjotAst([]byte(fixture.Input))
-			result := formatter.FormatWithConfig(ast, config)
-
-			if !assert.Equal(t, fixture.Expected, result) {
-				t.Logf("Fixture: %s (line %d)", fixture.Title, fixture.LineNumber)
-				t.Logf("Input: %q", fixture.Input)
-			}
-		})
-	}
+	runFixtures(t, "slw.txt", formatWithFixtureOptions)
 }
 
 func TestFormat_InlineFixtures(t *testing.T) {
-	path := filepath.Join("../../testdata/formatter", "inline.txt")
-
-	fixtures, err := testutil.ReadFixtures(path)
-	if err != nil {
-		t.Fatalf("Failed to read fixtures: %v", err)
-	}
-
-	for _, fixture := range fixtures {
-		t.Run(fixture.Title, func(t *testing.T) {
-			ast := djot_parser.BuildDjotAst([]byte(fixture.Input))
-			result := formatter.Format(ast)
-
-			if !assert.Equal(t, fixture.Expected, result) {
-				t.Logf("Fixture: %s (line %d)", fixture.Title, fixture.LineNumber)
-				t.Logf("Input: %q", fixture.Input)
-			}
-		})
-	}
+	runFixtures(t, "inline.txt", formatDefault)
 }
 
 func TestFormat_Idempotency(t *testing.T) {
@@ -121,9 +105,7 @@ func TestFormat_Idempotency(t *testing.T) {
 
 	for _, filename := range fixtureFiles {
 		t.Run(filename, func(t *testing.T) {
-			path := filepath.Join("../../testdata/formatter", filename)
-
-			fixtures, err := testutil.ReadFixtures(path)
+			fixtures, err := testutil.ReadFixtures(fixturePath(filename))
 			if err != nil {
 				t.Fatalf("Failed to read fixtures from %s: %v", filename, err)
 			}

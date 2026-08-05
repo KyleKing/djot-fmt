@@ -1,146 +1,122 @@
-# Agent Instructions for djot-fmt
+# AI Agent Guidelines for djot-fmt
 
-This file provides guidance to AI coding assistants working with this codebase.
+How to work in this Go project. Architecture and domain context live in
+[DESIGN.md](DESIGN.md); task and release mechanics live in
+[CONTRIBUTING.md](CONTRIBUTING.md). This file covers only what those two do not.
 
-## Project Overview
+## Verify before you report
 
-`djot-fmt` is a command-line tool for automatically formatting [djot](https://djot.net/) markup files. The primary focus is on correcting common list formatting issues:
-
-- Missing newlines between list items
-- Incorrect indentation for nested lists
-- Proper blank line spacing before nested content
-
-## Architecture
-
-### Structure
-
-```
-├── main.go              # CLI entry point
-├── internal/
-│   ├── formatter/       # Core formatting logic
-│   │   ├── formatter.go  # Node conversion functions
-│   │   ├── writer.go     # Output writer with state tracking
-│   │   └── formatter_test.go
-│   └── iohelper/        # File I/O and CLI argument handling
-│       ├── args.go       # Command-line argument parsing
-│       ├── process.go    # File reading/writing logic
-│       └── args_test.go
-└── testdata/            # Test fixtures
-```
-
-### Key Design Patterns
-
-**Conversion System** - Uses godjot's generic conversion pattern:
-- Registry maps `DjotNode` types to conversion functions
-- Each conversion function receives state and a callback for processing children
-- Writer tracks formatting state (indentation, block types, context)
-
-**State Tracking** - The `Writer` tracks:
-- Current indentation level
-- Last block type (for spacing decisions)
-- Whether currently inside a list item (for nested list handling)
-
-## Development Guidelines
-
-### When Modifying Formatters
-
-1. **Add new node type support**: Update `defaultRegistry` in `formatter.go` with a new conversion function
-2. **Modify spacing**: Adjust `NeedsBlankLine()` logic or block type tracking in `writer.go`
-3. **Handle edge cases**: Add test cases in `formatter_test.go` before implementing
-
-### Testing
+CI runs four jobs and `mise run ci` is only the first, so a green `mise run ci` is not
+a green build. Reproduce all four locally:
 
 ```bash
-# Run all tests
-go test ./...
-
-# Test specific package
-go test ./internal/formatter -v
-
-# Test with coverage
-go test -cover ./...
+hk check --all                            # every hook step; also re-runs `mise run ci`
+mise exec -- golangci-lint run ./...      # separate CI job, not an hk step
+mise exec -- golangci-lint config verify  # `run` accepts v1 schema keys silently
+mise run bench                            # compiles and runs the benchmarks
 ```
 
-### Code Style
+Run linters to completion rather than stopping at the first hit: add
+`--max-issues-per-linter=0 --max-same-issues=0`. A local run that passes while CI fails
+means the two commands differ, so read the workflow step and match its flags.
 
-Follow Go best practices from `GO_BEST_PRACTICES.md`:
-- Table-driven tests
-- Small, single-responsibility functions
-- Explicit error handling with context wrapping
-- No dot imports
+Known false negatives, each of which has already cost a session:
 
-### Linting Requirements
+- **Hooks look uninstalled when they are not.** `hk install --mise` on git 2.55+
+  writes `hook.hk-*.command` into `.git/config` and creates no `.git/hooks/pre-commit`.
+  Check with `git config --get-regexp '^hook\.'` (expect six entries) or
+  `git hook list pre-commit` (expect `hk-pre-commit`). A file-existence check is wrong.
+- **Never pipe or chain `git commit`.** `git commit … | tail` reports the pipe's exit
+  code, so a failing hook looks like success and the follow-up push ships nothing.
+  Commit as its own command, then confirm with `git log -1`. Hooks rewrite files here;
+  when one fails that way, `git add -A` its edits and commit again.
+- **A release is verified by distinct hashes, not asset count.** Ten assets can be one
+  binary published ten times. Confirm with
+  `gh release download <tag> -p checksums.txt -O - | awk '{print $1}' | sort -u | wc -l`
+  and expect the same number as there are binaries.
 
-The project enforces strict linting rules. Ensure code passes all linters before committing:
+When a check fails, fix the cause. Do not skip a test, widen a timeout, or disable a
+linter to get to green. Three fix-and-push rounds with no new root cause means stop and
+report what you found.
 
-**revive**:
-- Never use built-in function names as parameter names (`new`, `make`, `len`, etc.)
-- Use `switch` statements instead of if-else chains with 3+ branches
+## Layout
 
-**gocritic**:
-- Convert if-else chains to switch statements when appropriate
-- Prefer switch for cleaner, more maintainable branching logic
-
-**testifylint**:
-- Use `require.Error(t, err)` and `require.NoError(t, err)` for error assertions in tests
-- Never use `assert.Error` or `assert.NoError` - tests should stop on error assertion failures
-- `assert.*` is acceptable for non-error value comparisons
-
-**cyclop**:
-- Maximum cyclomatic complexity is 10 per function
-- Extract helper functions to reduce complexity when needed
-- Break down complex conditionals and loops into smaller functions
-
-**gosec**:
-- File permissions for `os.WriteFile` must be 0600 or less (not 0644)
-- Follow security best practices for file operations
-
-**testpackage**:
-- Test files should use `package <name>_test` instead of `package <name>`
-- This enforces testing the public API and prevents accessing private internals
-- Import the package explicitly (e.g., `import "github.com/KyleKing/djot-fmt/internal/formatter"`)
-- Note: Module path uses capital K in `KyleKing` (check go.mod for correct capitalization)
-
-## Common Tasks
-
-### Adding Support for New Node Type
-
-1. Add conversion function in `formatter.go`:
-   ```go
-   func formatNewNode(state ConversionState[*Writer], next func(Children)) {
-       // Handle node formatting
-       next(nil)  // Process children
-   }
-   ```
-
-2. Register in `defaultRegistry`:
-   ```go
-   NewNodeType: formatNewNode,
-   ```
-
-3. Add test case in `formatter_test.go`
-
-### Debugging Formatting Issues
-
-Use the AST inspection pattern:
-```go
-ast := djot_parser.BuildDjotAst(input)
-// Print AST structure to understand node hierarchy
+```
+djot-fmt/
+├── cmd/djot-fmt/  # main package, kept thin
+├── internal/         # private packages; the compiler blocks outside imports
+└── go.mod
 ```
 
-### Local Development with godjot
+One package, one purpose. Short lowercase names, no underscores (`httputil`, not
+`http_util`), and no grab-bags (`util`, `common`, `misc`). Name a file after the
+primary type it holds (`user.go`, `user_test.go`).
 
-The project uses a `replace` directive in `go.mod` to use the local godjot:
-```
-replace github.com/sivukhin/godjot/v2 => ../godjot
-```
+## Go conventions
 
-Build with:
-```bash
-GOWORK=off go build -o djot-fmt
-```
+- Define interfaces where they are consumed, not where implemented; keep them to 1-3
+  methods and add one only once a consumer needs it
+- Take `context.Context` as the first argument for cancellable or I/O-bound work
+- MixedCaps naming with uppercase acronyms (`ServeHTTP`, `userID`, `GetHTTPClient`)
+- Functional options for constructors with optional configuration (`WithTimeout(d)`)
+- Return errors instead of panicking outside truly unrecoverable states, and wrap with
+  context: `fmt.Errorf("loading config: %w", err)`
+- Inspect with `errors.Is` / `errors.As`; define types for domain-specific errors
+- Validate at boundaries and trust internal code (parse, don't validate)
+- Doc-comment exported symbols, starting with the symbol name, describing non-obvious
+  behavior and invariants rather than restating the types
 
-## Resources
+Avoid: naked returns, functions past ~50 lines, deep nesting (return early), ignored
+errors (`_ = doThing()` is almost always wrong), and shared global state (pass
+dependencies explicitly).
 
-- [djot specification](https://htmlpreview.github.io/?https://github.com/jgm/djot/blob/master/doc/syntax.html)
-- [godjot library](https://github.com/sivukhin/godjot)
+## Testing
+
+Table-driven tests with subtests via `t.Run`, placed next to the code they cover, in a
+`_test` package for black-box coverage. `mise run test:coverage-min` enforces the 70%
+floor.
+
+Golden fixtures are byte-exact: regenerate with `go test ./... -update` and review the
+diff, never hand-edit. `hk.pkl` excludes `**/*.golden` from the whitespace fixers, so a
+fixture under any other name (`testdata/golden_*.txt`) will be silently rewritten on
+commit; either rename it or add its glob to that exclude.
+
+## TUI testing
+
+A subprocess pipe is not a terminal, so the program detects a non-tty and never renders.
+Exploratory checks need a real PTY: run it under `tmux new -d -x 80 -y 24 <cmd>`, drive
+it with `tmux send-keys`, and read what actually rendered with `tmux capture-pane -p`
+(`-e` keeps ANSI codes). For scripted tests prefer
+`github.com/charmbracelet/x/exp/teatest`, which drives the `tea.Model` directly and
+diffs golden frames; fall back to `github.com/creack/pty` for non-Bubble Tea binaries.
+
+Exercise deliberately, because each of these renders fine in the happy path and breaks
+elsewhere: resize mid-session (`SIGWINCH`) and the minimum supported size; every quit
+path independently (`q`, `ctrl-c`, `esc`) restoring cursor and alt-screen state; empty
+and single-item states; and piped non-tty stdout degrading instead of hanging.
+
+Turn every bug found this way into a test named for its trigger
+(`TestQuit_RestoresCursorOnCtrlC`), parametrized over terminal size rather than
+hardcoding one.
+
+## Template-managed files
+
+This project is generated from
+[my_go_template](https://github.com/KyleKing/my_go_template). Edit the template, not the
+render, for anything under `.github/workflows/`, `.golangci.toml`, `hk.pkl`,
+`.goreleaser.yml`, or `.config/mise/conf.d/template.toml` — a `copier update` overwrites
+local edits there. Project-specific mise tasks belong in a sibling conf.d file
+(CONTRIBUTING.md explains the load order that makes the filename matter).
+
+After `copier update --UNSAFE --conflict=rej --defaults`, re-apply real local content
+from each `.rej`, discard hunks the new template supersedes, and delete the files (a
+hook blocks committing them). Two specifics:
+
+- `.cz.toml` is re-rendered with `version = "0.0.0"`. Restore the real version by hand
+  or the next release cuts `v0.0.1`.
+- **The same file conflicting on two consecutive updates means an answer is wrong, not
+  that the patch needs re-applying.** Read `.copier-answers.yml` first and fix the
+  answer; a typo there gets faithfully re-rendered every pass.
+
+A directory may add its own `AGENTS.md` to extend or override this file for the code
+under it. Template updates never overwrite any `AGENTS.md`.

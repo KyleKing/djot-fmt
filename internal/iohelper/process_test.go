@@ -1,3 +1,6 @@
+// The godjot tokenizer records matched symbols in a package-level map, so parsing cannot run concurrently.
+//
+//nolint:paralleltest,gosec // godjot's tokenizer is not goroutine safe, and every path comes from t.TempDir().
 package iohelper_test
 
 import (
@@ -5,9 +8,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/KyleKing/djot-fmt/internal/iohelper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyleKing/djot-fmt/internal/iohelper"
 )
 
 func defaultTestOptions() *iohelper.Options {
@@ -23,7 +27,7 @@ func TestProcessFile_CodeBlockSupported(t *testing.T) {
 	inputFile := filepath.Join(tmpDir, "test.dj")
 
 	input := "```\ncode block\n```\n"
-	err := os.WriteFile(inputFile, []byte(input), 0600)
+	err := os.WriteFile(inputFile, []byte(input), 0o600)
 	require.NoError(t, err)
 
 	opts := defaultTestOptions()
@@ -96,7 +100,7 @@ Third paragraph.
 			tmpDir := t.TempDir()
 			inputFile := filepath.Join(tmpDir, "test.dj")
 
-			err := os.WriteFile(inputFile, []byte(tt.input), 0600)
+			err := os.WriteFile(inputFile, []byte(tt.input), 0o600)
 			require.NoError(t, err)
 
 			opts := defaultTestOptions()
@@ -122,7 +126,7 @@ func TestProcessFile_Check_AlreadyFormatted(t *testing.T) {
 
 This is formatted.
 `
-	err := os.WriteFile(inputFile, []byte(formatted), 0600)
+	err := os.WriteFile(inputFile, []byte(formatted), 0o600)
 	require.NoError(t, err)
 
 	opts := defaultTestOptions()
@@ -144,7 +148,7 @@ func TestProcessFile_Check_NeedsFormatting(t *testing.T) {
 	unformatted := `-  Item 1
 -  Item 2
 `
-	err := os.WriteFile(inputFile, []byte(unformatted), 0600)
+	err := os.WriteFile(inputFile, []byte(unformatted), 0o600)
 	require.NoError(t, err)
 
 	opts := defaultTestOptions()
@@ -164,7 +168,7 @@ func TestProcessFile_Check_EmptyFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	inputFile := filepath.Join(tmpDir, "empty.dj")
 
-	err := os.WriteFile(inputFile, []byte("\n"), 0600)
+	err := os.WriteFile(inputFile, []byte("\n"), 0o600)
 	require.NoError(t, err)
 
 	opts := defaultTestOptions()
@@ -190,7 +194,7 @@ func TestProcessFile_OutputFile_CreatesNewFile(t *testing.T) {
 	expected := `- Item 1
 - Item 2
 `
-	err := os.WriteFile(inputFile, []byte(input), 0600)
+	err := os.WriteFile(inputFile, []byte(input), 0o600)
 	require.NoError(t, err)
 
 	opts := defaultTestOptions()
@@ -221,10 +225,10 @@ func TestProcessFile_OutputFile_OverwritesExisting(t *testing.T) {
 	expected := `# New Content
 `
 
-	err := os.WriteFile(inputFile, []byte(input), 0600)
+	err := os.WriteFile(inputFile, []byte(input), 0o600)
 	require.NoError(t, err)
 
-	err = os.WriteFile(outputFile, []byte(oldOutput), 0600)
+	err = os.WriteFile(outputFile, []byte(oldOutput), 0o600)
 	require.NoError(t, err)
 
 	opts := defaultTestOptions()
@@ -258,10 +262,10 @@ func TestProcessFile_WritePermissionDenied(t *testing.T) {
 
 	input := `# Test
 `
-	err := os.WriteFile(inputFile, []byte(input), 0600)
+	err := os.WriteFile(inputFile, []byte(input), 0o600)
 	require.NoError(t, err)
 
-	err = os.Chmod(inputFile, 0400)
+	err = os.Chmod(inputFile, 0o400)
 	require.NoError(t, err)
 
 	opts := defaultTestOptions()

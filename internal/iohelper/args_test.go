@@ -3,16 +3,20 @@ package iohelper_test
 import (
 	"testing"
 
-	"github.com/KyleKing/djot-fmt/internal/iohelper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyleKing/djot-fmt/internal/iohelper"
 )
 
+//nolint:funlen // Table-driven cases enumerate flag combinations without adding complexity.
 func TestParseArgs(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
+		want    *iohelper.Options
 		name    string
 		args    []string
-		want    *iohelper.Options
 		wantErr bool
 	}{
 		{
@@ -169,6 +173,8 @@ func TestParseArgs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, err := iohelper.ParseArgs(tt.args)
 			if tt.wantErr {
 				assert.Error(t, err)

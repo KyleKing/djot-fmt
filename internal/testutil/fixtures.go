@@ -1,3 +1,4 @@
+// Package testutil reads the shared djot-fmt test fixture format.
 package testutil
 
 import (
@@ -10,20 +11,25 @@ import (
 	"github.com/KyleKing/djot-fmt/internal/slw"
 )
 
+const optionEnabled = "true"
+
+// Fixture is one input/expected pair parsed from a fixture file.
 type Fixture struct {
-	LineNumber int
+	Options    map[string]string
 	Title      string
 	Input      string
 	Expected   string
-	Options    map[string]string
+	LineNumber int
 }
 
-//nolint:cyclop // Test fixture parser has inherent complexity from state machine
+// ReadFixtures parses every fixture defined in the file at filepath.
 func ReadFixtures(filepath string) ([]Fixture, error) {
+	//nolint:gosec // Fixture paths come from the test suite, not from user input.
 	file, err := os.Open(filepath)
 	if err != nil {
 		return nil, fmt.Errorf("opening fixture file: %w", err)
 	}
+	//nolint:errcheck // The fixture file is read-only, so a close failure cannot affect the parsed result.
 	defer file.Close()
 
 	var fixtures []Fixture
@@ -53,70 +59,16 @@ func ReadFixtures(filepath string) ([]Fixture, error) {
 
 		lineNum++
 
-		var inputLines []string
+		inputLines := readSection(scanner, &lineNum)
+		expectedLines := readSection(scanner, &lineNum)
 
-		for scanner.Scan() {
-			lineNum++
-
-			line := scanner.Text()
-			if line == "." {
-				break
-			}
-
-			inputLines = append(inputLines, line)
-		}
-
-		var expectedLines []string
-
-		for scanner.Scan() {
-			lineNum++
-
-			line := scanner.Text()
-			if line == "." {
-				break
-			}
-
-			expectedLines = append(expectedLines, line)
-		}
-
-		options := make(map[string]string)
-
-		for scanner.Scan() {
-			lineNum++
-
-			line := strings.TrimSpace(scanner.Text())
-			if line == "" {
-				break
-			}
-
-			if strings.HasPrefix(line, "--") {
-				option := strings.TrimPrefix(line, "--")
-				if strings.Contains(option, "=") {
-					parts := strings.SplitN(option, "=", 2)
-					options[parts[0]] = strings.Trim(parts[1], "\"")
-				} else {
-					options[option] = "true"
-				}
-			} else {
-				break
-			}
-		}
-
-		input := strings.Join(inputLines, "\n")
-		if len(inputLines) > 0 {
-			input += "\n"
-		}
-
-		expected := strings.Join(expectedLines, "\n")
-		if len(expectedLines) > 0 {
-			expected += "\n"
-		}
+		options := readOptions(scanner, &lineNum)
 
 		fixtures = append(fixtures, Fixture{
 			LineNumber: startLine,
 			Title:      title,
-			Input:      input,
-			Expected:   expected,
+			Input:      joinLines(inputLines),
+			Expected:   joinLines(expectedLines),
 			Options:    options,
 		})
 	}
@@ -128,10 +80,61 @@ func ReadFixtures(filepath string) ([]Fixture, error) {
 	return fixtures, nil
 }
 
+func joinLines(lines []string) string {
+	if len(lines) == 0 {
+		return ""
+	}
+
+	return strings.Join(lines, "\n") + "\n"
+}
+
+func readSection(scanner *bufio.Scanner, lineNum *int) []string {
+	var lines []string
+
+	for scanner.Scan() {
+		*lineNum++
+
+		line := scanner.Text()
+		if line == "." {
+			break
+		}
+
+		lines = append(lines, line)
+	}
+
+	return lines
+}
+
+func readOptions(scanner *bufio.Scanner, lineNum *int) map[string]string {
+	options := make(map[string]string)
+
+	for scanner.Scan() {
+		*lineNum++
+
+		line := strings.TrimSpace(scanner.Text())
+		if !strings.HasPrefix(line, "--") {
+			break
+		}
+
+		option := strings.TrimPrefix(line, "--")
+
+		key, value, found := strings.Cut(option, "=")
+		if !found {
+			options[option] = optionEnabled
+			continue
+		}
+
+		options[key] = strings.Trim(value, "\"")
+	}
+
+	return options
+}
+
+// ConfigFromOptions builds a wrapping config from a fixture's option map.
 func ConfigFromOptions(options map[string]string) *slw.Config {
 	config := slw.DefaultConfig()
 
-	if val, ok := options["no-wrap-sentences"]; ok && val == "true" {
+	if val, ok := options["no-wrap-sentences"]; ok && val == optionEnabled {
 		config.Enabled = false
 	}
 

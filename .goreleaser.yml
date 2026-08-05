@@ -1,0 +1,84 @@
+
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - main: ./cmd/djot-fmt
+    id: djot-fmt
+    # A cgo-only dependency makes this matrix build cleanly and emit nothing
+    # usable, because cgo cannot cross-compile. See "Releasing a project that
+    # needs cgo" in the template README for the rework that path needs.
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+    goos:
+      - linux
+      - darwin
+      - windows
+      - freebsd
+    goarch:
+      - amd64
+      - arm64
+      - "386"
+    ignore:
+      - goos: darwin
+        goarch: "386"
+      - goos: windows
+        goarch: arm64
+    binary: djot-fmt
+
+archives:
+  - id: djot-fmt
+    formats: [binary]
+    name_template: "djot-fmt-{{ .Os }}-{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ .Version }}-next"
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+
+release:
+  draft: false
+  prerelease: auto
+
+homebrew_casks:
+  - name: djot-fmt
+    # Pushed over SSH with a deploy key scoped to the tap repo, since GitHub
+    # offers no API to mint PATs; provisioned by scripts/provision-tap-deploy-key.sh.
+    repository:
+      owner: KyleKing
+      name: homebrew-tap
+      git:
+        url: git@github.com:KyleKing/homebrew-tap.git
+        private_key: '{{ envOrDefault "TAP_DEPLOY_KEY" "" }}'
+    homepage: https://github.com/KyleKing/djot-fmt
+    description: "Automatic formatter for djot markup files"
+    # Without the TAP_DEPLOY_KEY secret the tap push is skipped with a warning
+    # and the rest of the release still publishes, so a project that has not
+    # been provisioned yet needs no config change here.
+    skip_upload: '{{ if isEnvSet "TAP_DEPLOY_KEY" }}auto{{ else }}true{{ end }}'
+    # The binaries are unsigned; clear the quarantine bit so macOS will run them.
+    hooks:
+      post:
+        install: |
+          Dir.glob(File.join(staged_path, "djot-fmt*")).each do |f|
+            system_command "/usr/bin/xattr", args: ["-c", f], must_succeed: false
+          end

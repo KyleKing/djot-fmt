@@ -1,3 +1,4 @@
+// Package slw implements semantic line wrapping, breaking text after sentence endings.
 package slw
 
 import (
@@ -5,20 +6,27 @@ import (
 	"unicode"
 )
 
+const (
+	defaultMinLineLength = 40
+	defaultMaxLineWidth  = 88
+)
+
+// Config controls how text is split at sentence boundaries.
 type Config struct {
-	Enabled       bool
+	Abbreviations map[string]bool
 	Markers       string
 	MinLineLength int
 	MaxLineWidth  int
-	Abbreviations map[string]bool
+	Enabled       bool
 }
 
+// DefaultConfig returns the semantic line wrapping defaults.
 func DefaultConfig() *Config {
 	return &Config{
 		Enabled:       true,
 		Markers:       ".!?",
-		MinLineLength: 40,
-		MaxLineWidth:  88,
+		MinLineLength: defaultMinLineLength,
+		MaxLineWidth:  defaultMaxLineWidth,
 		Abbreviations: getDefaultAbbreviations(),
 	}
 }
@@ -45,6 +53,7 @@ func getDefaultAbbreviations() map[string]bool {
 	return result
 }
 
+// WrapText inserts a line break after each sentence ending found in text.
 func WrapText(text string, config *Config) string {
 	if !config.Enabled || text == "" {
 		return text
@@ -59,7 +68,7 @@ func WrapText(text string, config *Config) string {
 			result.WriteString("\n")
 		}
 
-		if len(strings.TrimSpace(line)) == 0 {
+		if strings.TrimSpace(line) == "" {
 			result.WriteString(line)
 			continue
 		}

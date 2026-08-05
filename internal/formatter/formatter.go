@@ -1,12 +1,14 @@
+// Package formatter renders a djot AST back to djot source text.
 package formatter
 
 import (
 	"strings"
 
-	"github.com/KyleKing/djot-fmt/internal/slw"
 	"github.com/sivukhin/godjot/v2/djot_parser"
 	"github.com/sivukhin/godjot/v2/djot_tokenizer"
 	"github.com/sivukhin/godjot/v2/tokenizer"
+
+	"github.com/KyleKing/djot-fmt/internal/slw"
 )
 
 func formatDocument(_ djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
@@ -80,6 +82,7 @@ func formatListItem(state djot_parser.ConversionState[*Writer], next func(djot_p
 			} else {
 				marker = "- [ ] "
 			}
+		default:
 		}
 	}
 
@@ -482,7 +485,7 @@ var skippedAttributes = map[string]bool{
 }
 
 func shouldSkipAttribute(key string) bool {
-	if len(key) > 0 && key[0] == '$' {
+	if key != "" && key[0] == '$' {
 		return true
 	}
 
@@ -551,12 +554,13 @@ func extractTextContent(node djot_parser.TreeNode[djot_parser.DjotNode]) string 
 		return string(node.Text)
 	}
 
-	var result string
+	var result strings.Builder
+
 	for _, child := range node.Children {
-		result += extractTextContent(child)
+		result.WriteString(extractTextContent(child))
 	}
 
-	return result
+	return result.String()
 }
 
 var defaultRegistry = map[djot_parser.DjotNode]djot_parser.Conversion[*Writer]{
@@ -605,6 +609,7 @@ var defaultRegistry = map[djot_parser.DjotNode]djot_parser.Conversion[*Writer]{
 	djot_parser.TableCaptionNode: formatTableCaption,
 }
 
+// Format renders the AST using the default semantic line wrapping config.
 func Format(ast []djot_parser.TreeNode[djot_parser.DjotNode]) string {
 	writer := NewWriter()
 	ctx := djot_parser.ConversionContext[*Writer]{
@@ -616,6 +621,7 @@ func Format(ast []djot_parser.TreeNode[djot_parser.DjotNode]) string {
 	return writer.String()
 }
 
+// FormatWithConfig renders the AST using the given semantic line wrapping config.
 func FormatWithConfig(ast []djot_parser.TreeNode[djot_parser.DjotNode], slwConfig *slw.Config) string {
 	writer := NewWriterWithConfig(slwConfig)
 	ctx := djot_parser.ConversionContext[*Writer]{
