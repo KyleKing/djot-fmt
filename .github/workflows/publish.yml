@@ -184,8 +184,8 @@ jobs:
       - name: Wait for the release to appear on PyPI
         run: |
           for attempt in $(seq 1 20); do
-            if uv pip download --no-deps --dest /tmp/probe \
-              "${PACKAGE_NAME}==${VERSION}" >/dev/null 2>&1; then
+            if uv run --refresh --no-project \
+              --with "${PACKAGE_NAME}==${VERSION}" python -c "pass" >/dev/null 2>&1; then
               echo "Available after ${attempt} attempt(s)"
               exit 0
             fi
