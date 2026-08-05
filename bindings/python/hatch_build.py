@@ -71,6 +71,9 @@ class GoSharedLibraryHook(BuildHookInterface):
                 'go',
                 'build',
                 '-buildmode=c-shared',
+                # version, commit, and date are stamped below, and automatic VCS
+                # stamping fails wherever git declines to trust the checkout
+                '-buildvcs=false',
                 '-trimpath',
                 '-ldflags',
                 ldflags,

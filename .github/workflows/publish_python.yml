@@ -44,6 +44,20 @@ jobs:
         if: startsWith(matrix.target, 'macos')
         run: echo "MACOSX_DEPLOYMENT_TARGET=13.0" >> "$GITHUB_ENV"
 
+      # The arm64 Windows image ships only an x86_64 mingw, which assembles Go's arm64
+      # sources with an x86 assembler. cgo needs a gcc-compatible driver, so MSVC cannot
+      # stand in for it.
+      - name: Install an aarch64 mingw toolchain
+        if: matrix.target == 'windows-arm64'
+        shell: pwsh
+        run: |
+          $release = "20260616"
+          $name = "llvm-mingw-$release-ucrt-aarch64"
+          Invoke-WebRequest -Uri "https://github.com/mstorsjo/llvm-mingw/releases/download/$release/$name.zip" -OutFile toolchain.zip
+          Expand-Archive -Path toolchain.zip -DestinationPath C:\
+          "C:\$name\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          "CC=aarch64-w64-mingw32-gcc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: Build wheel
         run: uv build --wheel --out-dir dist
         env:
