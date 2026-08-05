@@ -1,3 +1,9 @@
+## v0.1.0rc1 (2026-08-05)
+
+### Fix
+
+- build wheels on manylinux containers and windows arm64
+
 ## v0.1.0rc0 (2026-08-05)
 
 ### Feat
