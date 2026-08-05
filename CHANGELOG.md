@@ -1,3 +1,13 @@
+## v0.1.0rc2 (2026-08-05)
+
+### Feat
+
+- allow bump_version to cut a prerelease on manual dispatch
+
+### Fix
+
+- publish Go binaries and the Python package from one called workflow
+
 ## v0.1.0rc1 (2026-08-05)
 
 ### Fix
