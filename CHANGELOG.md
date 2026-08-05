@@ -1,0 +1,25 @@
+## v0.1.0rc0 (2026-08-05)
+
+### Feat
+
+- publish djot-fmt to PyPI through cgo bindings
+- address bugs and gaps
+- expand write implementation
+- support multiple input files
+- implement semantic line wrapping (SLW) (#1)
+- init djot formatter
+
+### Fix
+
+- **hk**: skip the commitizen branch check on an empty rev-range
+- address space issues
+- format custom attributes
+- finish addressing low priority bugs
+- prevent silently dropping unknown nodes
+- write to output file when headers
+- resolve linting errors
+- rename for consistency with GitHub repo
+
+### Refactor
+
+- cleanup overall code quality
