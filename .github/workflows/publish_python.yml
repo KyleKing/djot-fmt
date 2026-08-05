@@ -1,0 +1,175 @@
+---
+# Wheels are py3-none-<platform>: the ctypes binding never touches the CPython ABI,
+# so one wheel per platform covers every supported Python version.
+name: Publish Python
+
+"on":
+  push:
+    tags: ["v*"]
+  workflow_dispatch: null # Publishes to TestPyPI
+
+env:
+  PACKAGE_NAME: djot-fmt
+
+jobs:
+  wheels:
+    name: Wheel (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {target: linux-x86_64, runner: ubuntu-24.04, container: quay.io/pypa/manylinux_2_28_x86_64}
+          - {target: linux-aarch64, runner: ubuntu-24.04-arm, container: quay.io/pypa/manylinux_2_28_aarch64}
+          - {target: macos-x86_64, runner: macos-15-intel}
+          - {target: macos-arm64, runner: macos-15}
+          - {target: windows-x86_64, runner: windows-2025}
+          - {target: windows-arm64, runner: windows-11-arm}
+    container: ${{ matrix.container }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+      # Wheels must run on macOS releases older than the runner, and the deployment
+      # target is what the wheel tag claims.
+      - name: Pin the macOS deployment target
+        if: startsWith(matrix.target, 'macos')
+        run: echo "MACOSX_DEPLOYMENT_TARGET=13.0" >> "$GITHUB_ENV"
+
+      - name: Build wheel
+        run: uv build --wheel --out-dir dist
+        env:
+          BUILD_DATE: ${{ github.event.repository.updated_at }}
+          GIT_COMMIT: ${{ github.sha }}
+
+      # The wheel is tagged linux_* at build time because the glibc floor it
+      # actually satisfies is only knowable after inspecting the shared library.
+      - name: Retag Linux wheels to manylinux
+        if: startsWith(matrix.target, 'linux')
+        run: |
+          uvx auditwheel repair dist/*.whl --wheel-dir repaired
+          rm dist/*.whl
+          mv repaired/*.whl dist/
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wheel-${{ matrix.target }}
+          path: dist/*.whl
+          if-no-files-found: error
+
+  sdist:
+    name: Source distribution
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+      - name: Build sdist
+        run: uv build --sdist --out-dir dist
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  publish-testpypi:
+    if: github.event_name == 'workflow_dispatch'
+    needs: [wheels, sdist]
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: dist
+          pattern: "{wheel-*,sdist}"
+          merge-multiple: true
+
+      - uses: pypa/gh-action-pypi-publish@ba38be9e461d3875417946c167d0b5f3d385a247 # release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  publish-pypi:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [wheels, sdist]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: dist
+          pattern: "{wheel-*,sdist}"
+          merge-multiple: true
+
+      - uses: pypa/gh-action-pypi-publish@ba38be9e461d3875417946c167d0b5f3d385a247 # release/v1
+
+  # A wheel that builds is not a wheel that runs. Every platform is exercised against
+  # the real index, because a wrongly tagged wheel or a library missing a symbol
+  # only shows up on install.
+  verify:
+    name: Verify ${{ matrix.target }}
+    needs: [publish-pypi]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {target: linux-x86_64, runner: ubuntu-24.04}
+          - {target: linux-aarch64, runner: ubuntu-24.04-arm}
+          - {target: macos-x86_64, runner: macos-15-intel}
+          - {target: macos-arm64, runner: macos-15}
+          - {target: windows-x86_64, runner: windows-2025}
+          - {target: windows-arm64, runner: windows-11-arm}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+      - name: Resolve the published version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      # PyPI serves the index through a CDN that lags the upload by up to a few minutes.
+      - name: Wait for the release to appear on PyPI
+        run: |
+          for attempt in $(seq 1 20); do
+            if uv pip download --no-deps --dest /tmp/probe \
+              "${PACKAGE_NAME}==${VERSION}" >/dev/null 2>&1; then
+              echo "Available after ${attempt} attempt(s)"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::${PACKAGE_NAME}==${VERSION} never became installable"
+          exit 1
+
+      - name: Run the console script
+        run: |
+          printf '# Title\n\n-  a\n-  b\n' > input.dj
+          uvx --refresh --from "${PACKAGE_NAME}==${VERSION}" djot-fmt input.dj > actual.dj
+          printf '# Title\n\n- a\n- b\n' > expected.dj
+          diff -u expected.dj actual.dj
+
+      - name: Import the library and check the stamped version
+        run: |
+          uv run --refresh --no-project --with "${PACKAGE_NAME}==${VERSION}" python -c "
+          import djot_fmt
+
+          assert djot_fmt.format('-  a\n') == '- a\n', djot_fmt.format('-  a\n')
+          assert djot_fmt.__version__ == '${VERSION}', djot_fmt.__version__
+          assert djot_fmt.go_version().split()[0] == '${VERSION}', djot_fmt.go_version()
+          print('ok', djot_fmt.go_version())
+          "

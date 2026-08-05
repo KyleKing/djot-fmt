@@ -1,0 +1,96 @@
+[project]
+name = "djot-fmt"
+version = "0.0.0"
+description = "Automatic formatter for djot markup files"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Kyle King", email = "dev.act.kyle@gmail.com" }]
+keywords = ["djot", "formatter", "markup"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Go",
+  "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Repository = "https://github.com/KyleKing/djot-fmt"
+
+[project.scripts]
+djot-fmt = "djot_fmt._cli:main"
+
+[dependency-groups]
+dev = [
+  "hatchling>=1.27",  # the build hook is type-checked alongside the package
+  "pytest>=8",
+  "ruff>=0.9",
+  "ty>=0.0.1a1",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.hooks.custom]
+path = "bindings/python/hatch_build.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "bindings/",
+  "cmd/",
+  "go.mod",
+  "go.sum",
+  "internal/",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["bindings/python/djot_fmt"]
+
+[tool.pytest.ini_options]
+testpaths = ["bindings/python/tests"]
+
+[tool.ruff]
+line-length = 120
+src = ["bindings/python"]
+target-version = "py310"
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+ignore = [
+  "missing-trailing-comma",  # conflicts with the formatter
+  "missing-copyright-notice",  # this repo carries its license in LICENSE, not in file headers
+  "incorrect-blank-line-before-class",  # incompatible with D211
+  "multi-line-summary-second-line",  # incompatible with D212
+  "raw-string-in-exception",  # a literal message reads better than a name used once
+  "print",  # the CLI prints on purpose
+  "raise-vanilla-args",  # these exceptions carry their context in the message
+  "docstring-missing-returns",  # one-line docstrings say it already
+  "docstring-missing-exception",  # one-line docstrings say it already
+  "suspicious-subprocess-import",  # the build hook has to shell out to the Go toolchain
+]
+preview = true
+select = ["ALL"]
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
+
+[tool.ruff.lint.per-file-ignores]
+"bindings/python/tests/*" = [
+  "D",
+  "boolean-type-hint-positional-argument",
+  "implicit-namespace-package",
+  "magic-value-comparison",
+  "assert"
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ty.src]
+include = ["bindings/python"]
