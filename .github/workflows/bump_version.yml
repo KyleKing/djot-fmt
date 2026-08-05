@@ -4,7 +4,14 @@ name: Bump Version
 "on":
   push:
     branches: ['main']
-  workflow_dispatch: null # For manual runs
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: Cut a prerelease of this kind instead of a full release
+        required: false
+        default: none
+        type: choice
+        options: [none, alpha, beta, rc]
 
 jobs:
   bump-version:
@@ -28,6 +35,11 @@ jobs:
         with:
           branch: main
           changelog_increment_filename: body.md
+          # Resolves to empty on push events and on the "none" choice, which
+          # commitizen reads as a full release. The condition is written this way
+          # because an expression whose middle operand is falsy falls through to
+          # the right-hand side.
+          prerelease: ${{ inputs.prerelease != 'none' && inputs.prerelease || '' }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       # REVISION == PREVIOUS_REVISION means commitizen found no bumpable commits
