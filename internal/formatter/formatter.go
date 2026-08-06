@@ -20,13 +20,7 @@ func formatSection(_ djot_parser.ConversionState[*Writer], next func(djot_parser
 }
 
 func formatText(state djot_parser.ConversionState[*Writer], _ func(djot_parser.Children)) {
-	text := string(state.Node.Text)
-
-	if state.Writer.InParagraph() && state.Writer.slwConfig != nil && state.Writer.slwConfig.Enabled {
-		text = slw.WrapText(text, state.Writer.slwConfig)
-	}
-
-	state.Writer.WriteString(text)
+	state.Writer.WriteString(string(state.Node.Text))
 }
 
 func formatParagraph(state djot_parser.ConversionState[*Writer], next func(djot_parser.Children)) {
@@ -36,9 +30,9 @@ func formatParagraph(state djot_parser.ConversionState[*Writer], next func(djot_
 		w.WriteString("\n")
 	}
 
-	w.SetInParagraph(true)
+	w.BeginInline()
 	next(nil)
-	w.SetInParagraph(false)
+	w.WriteString(w.WrapInline(w.EndInline()))
 
 	w.WriteString("\n")
 	w.SetLastBlockType(BlockTypeParagraph)

@@ -1,7 +1,8 @@
 # Roadmap
 
-Where djot-fmt goes from `v0.1.0rc1` to a formatter that yak-shears can depend on.
-Seven milestones, ordered by what blocks what.
+Where djot-fmt goes from `v0.1.0rc1` to a formatter that yak-shears can depend on,
+ordered by what blocks what. Validation and the inline buffer have landed; what is
+below has not.
 
 ## Verified starting point
 
@@ -15,8 +16,6 @@ several of these are worse than the code reads.
 | `5. five` / `6. six` | `1. five` / `1. six` | Start number lost, and djot says the start number is significant |
 | `i. one` / `ii. two` | `a. one` / `a. two` | godjot parses this as lower-alpha `start="9"`, so roman is lost upstream |
 | `1) one` / `(1) one` | `1. one` | Delimiter style normalized, no way to opt out |
-| 160-char line, no sentence end | Unchanged | `--slw-wrap` is accepted, stored, and never read |
-| Sentence break next to `` `code. inside` `` and `[link with. dots](u)` | Break inserted, no protection | mdformat-slw protects both |
 | Loose list item, `--slw-min-line 0` | Continuation line at column 0 | Legal djot (lazy continuation), reads badly in a diff |
 | ` ``` python ` block | Fence normalized, body untouched | No code formatting yet |
 
@@ -26,28 +25,6 @@ Two spec points I checked rather than assumed, from `jgm/djot doc/syntax.md`:
   It is a style question, not a correctness bug
 - djot defines no frontmatter. Any support here is an extension, which is exactly why
   it belongs behind configuration
-
-`--slw-wrap` being inert is the clearest signal of the structural problem: `slw.WrapText`
-runs inside `formatText`, on one `TextNode` at a time. It cannot see the rendered width
-of a line because emphasis, links, and code spans are siblings it never sees, and it
-cannot see the active indent or `>` prefix. Width-aware wrapping, link protection, and
-indent-aware continuation all need the same fix.
-
-## M2: buffer inline output per block
-
-`Writer` gains an inline buffer. Block formatters open the buffer, let children render
-into it, then hand the finished string to a post-render pass before writing it out with
-the current indent and prefix stack applied. This is the same shape as mdformat's
-`POSTPROCESSORS` map, which is why mdformat-slw can protect link syntax at all.
-
-Concretely:
-
-- `Writer.BeginInline()` / `EndInline() string` around the `next(nil)` call
-- `slw.Wrap(text, startColumn, cfg)` replaces the per-`TextNode` call
-- `formatText` goes back to writing text verbatim
-
-No intended behavior change beyond the wrapping that starts working as documented. M1
-makes this refactor safe to do.
 
 ## M3: frontmatter
 
@@ -97,26 +74,19 @@ number is honored in both modes because the spec says it is meaningful.
 
 ## M5: semantic line wrapping parity
 
-The Go implementation is 152 lines against 772 in Python. The gap, in the order the
-Python pipeline applies it:
+The pipeline now mirrors mdformat-slw: collapse spaces, protect regions, break
+sentences against the accumulated output line, wrap to width, pull block markers off
+wrapped line starts. Every stage is checked against real mdformat-slw output. What is
+left:
 
 | mdformat-slw stage | Go status |
 | --- | --- |
-| Collapse whitespace, preserve U+00A0 | Missing |
-| Find protected regions (code spans, inline and reference links) | Missing |
-| Sentence break, with closing `"'` `)]}` carried past the marker | Marker only |
-| Min-line measured against the accumulated output line | Measured against the whole input line, in bytes |
 | Abbreviation suppression | 20 hardcoded English entries vs 6 language lists |
-| Replace spaces in link text so links do not split | Missing |
-| Protect spaces inside code spans | Missing |
-| Wrap to `--slw-wrap` using display width | Not implemented at all |
-| Pull block markers off wrapped line starts | Missing |
+| Display width | Rune count, so CJK and emoji measure short |
 
-M2 makes stages 2, 7, 8, and 9 possible. Stages 1, 3, 4, and 5 are self-contained.
-
-Two djot-specific additions with no mdformat counterpart: protect attribute blocks
-(`{.class #id key="value"}`) and inline math (`$...$`, `$$...$$`) as unwrappable, and
-treat `:::` fences and `|` table rows as never-wrap.
+Two djot-specific additions with no mdformat counterpart: attribute blocks
+(`{.class #id key="value"}`) and math (`$...$`, `$$...$$`) are already protected, and
+`:::` fences and `|` table rows never reach the wrapper because they are not paragraphs.
 
 One new option:
 
@@ -359,15 +329,13 @@ that lets you pick loses the property that makes it useful.
 
 ## Sequencing
 
-M2 next, since M5 is mostly blocked on it and validation makes the refactor verifiable.
-
-M3 in parallel with either. Frontmatter wraps the pipeline rather than living inside it,
+M3 first. Frontmatter wraps the pipeline rather than living inside it,
 so it does not conflict, and it unblocks yak-shears earliest.
 
 M4 next, small and self-contained, with the roman question scoped before it starts.
 
-M5 after M2. Begin with the shared TOML data and the conformance corpus in mdformat-slw,
-since those set the target the Go code is written against.
+M5 begins with the shared TOML data and the conformance corpus in mdformat-slw, since
+those set the target the Go code is written against.
 
 M6 and M7 in either order. M7 is smaller and yak-shears wants it.
 

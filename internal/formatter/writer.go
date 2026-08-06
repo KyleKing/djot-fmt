@@ -2,6 +2,7 @@ package formatter
 
 import (
 	"strings"
+	"unicode/utf8"
 
 	"github.com/KyleKing/djot-fmt/internal/slw"
 )
@@ -21,12 +22,13 @@ const (
 type Writer struct {
 	slwConfig    *slw.Config
 	output       strings.Builder
+	inline       *strings.Builder
 	indentStack  []string
 	linePrefixes []string
 	lastBlock    BlockType
+	lineWidth    int
 	inListItem   bool
 	lineStart    bool
-	inParagraph  bool
 	inSparseList bool
 }
 
@@ -50,6 +52,11 @@ func NewWriterWithConfig(slwConfig *slw.Config) *Writer {
 //
 //nolint:unparam // Chainable writer API keeps a uniform signature across write helpers.
 func (w *Writer) WriteString(s string) *Writer {
+	if w.inline != nil {
+		w.inline.WriteString(s)
+		return w
+	}
+
 	if len(w.linePrefixes) == 0 {
 		w.writeStringDirect(s)
 		return w
@@ -61,8 +68,20 @@ func (w *Writer) WriteString(s string) *Writer {
 }
 
 func (w *Writer) writeStringDirect(s string) {
-	w.output.WriteString(s)
+	w.emit(s)
 	w.lineStart = s != "" && s[len(s)-1] == '\n'
+}
+
+func (w *Writer) emit(s string) {
+	for _, r := range s {
+		if r == '\n' {
+			w.lineWidth = 0
+		} else {
+			w.lineWidth++
+		}
+	}
+
+	w.output.WriteString(s)
 }
 
 func (w *Writer) writeStringWithPrefixes(s string) {
@@ -70,7 +89,7 @@ func (w *Writer) writeStringWithPrefixes(s string) {
 
 	for i, char := range s {
 		w.applyPrefixAtLineStart(i, char, prefix)
-		w.output.WriteRune(char)
+		w.emit(string(char))
 		w.applyPrefixAfterNewline(i, char, s, prefix)
 	}
 
@@ -80,9 +99,9 @@ func (w *Writer) writeStringWithPrefixes(s string) {
 func (w *Writer) applyPrefixAtLineStart(index int, char rune, prefix string) {
 	if index == 0 && w.lineStart {
 		if char == '\n' {
-			w.output.WriteString(strings.TrimRight(prefix, " "))
+			w.emit(strings.TrimRight(prefix, " "))
 		} else {
-			w.output.WriteString(prefix)
+			w.emit(prefix)
 		}
 	}
 }
@@ -91,9 +110,9 @@ func (w *Writer) applyPrefixAfterNewline(index int, char rune, s, prefix string)
 	if char == '\n' && index < len(s)-1 {
 		nextIsNewline := index+1 < len(s) && s[index+1] == '\n'
 		if nextIsNewline {
-			w.output.WriteString(strings.TrimRight(prefix, " "))
+			w.emit(strings.TrimRight(prefix, " "))
 		} else {
-			w.output.WriteString(prefix)
+			w.emit(prefix)
 		}
 	}
 }
@@ -101,7 +120,7 @@ func (w *Writer) applyPrefixAfterNewline(index int, char rune, s, prefix string)
 // WriteIndent writes the current indentation stack.
 func (w *Writer) WriteIndent() *Writer {
 	for _, indent := range w.indentStack {
-		w.output.WriteString(indent)
+		w.emit(indent)
 	}
 
 	return w
@@ -161,14 +180,36 @@ func (w *Writer) InListItem() bool {
 	return w.inListItem
 }
 
-// SetInParagraph marks whether output is inside a paragraph.
-func (w *Writer) SetInParagraph(inPara bool) {
-	w.inParagraph = inPara
+// BeginInline redirects writes into a buffer so a block can wrap its finished
+// inline text before any indent or line prefix is applied. Blocks do not nest
+// inline content, so there is only ever one buffer open.
+func (w *Writer) BeginInline() {
+	w.inline = &strings.Builder{}
 }
 
-// InParagraph reports whether output is inside a paragraph.
-func (w *Writer) InParagraph() bool {
-	return w.inParagraph
+// EndInline returns the buffered inline text and resumes normal writing.
+func (w *Writer) EndInline() string {
+	text := w.inline.String()
+	w.inline = nil
+
+	return text
+}
+
+// WrapInline applies semantic line wrapping to a block's finished inline text,
+// measured from the column where that text will land.
+func (w *Writer) WrapInline(text string) string {
+	if w.slwConfig == nil || !w.slwConfig.Enabled {
+		return text
+	}
+
+	prefix := utf8.RuneCountInString(strings.Join(w.linePrefixes, ""))
+
+	first := w.lineWidth
+	if w.lineStart {
+		first = prefix
+	}
+
+	return slw.Wrap(text, slw.Layout{FirstColumn: first, ContinuationColumn: prefix}, w.slwConfig)
 }
 
 // PushLinePrefix adds a prefix written at the start of every subsequent line.

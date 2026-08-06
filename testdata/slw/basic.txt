@@ -2,10 +2,8 @@ simple sentence wrapping
 .
 This is a long sentence. It contains multiple clauses! Does it work? Yes it does.
 .
-This is a long sentence.
-It contains multiple clauses!
-Does it work?
-Yes it does.
+This is a long sentence. It contains multiple clauses!
+Does it work? Yes it does.
 .
 
 single sentence
@@ -57,8 +55,7 @@ time abbreviations
 .
 The meeting is at 9 a.m. tomorrow. Please arrive on time.
 .
-The meeting is at 9 a.m. tomorrow.
-Please arrive on time.
+The meeting is at 9 a.m. tomorrow. Please arrive on time.
 .
 
 academic abbreviations
@@ -109,9 +106,7 @@ custom markers
 .
 First sentence. Second sentence! Third sentence? Fourth sentence.
 .
-First sentence.
-Second sentence!
-Third sentence?
+First sentence. Second sentence! Third sentence?
 Fourth sentence.
 .
 

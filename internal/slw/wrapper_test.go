@@ -2,6 +2,7 @@ package slw_test
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,7 +44,7 @@ func TestFixtures(t *testing.T) {
 				t.Parallel()
 
 				config := testutil.ConfigFromOptions(fixture.Options)
-				result := slw.WrapText(fixture.Input, config)
+				result := slw.Wrap(strings.TrimSuffix(fixture.Input, "\n"), slw.Layout{}, config) + "\n"
 
 				if !assert.Equal(t, fixture.Expected, result) {
 					t.Logf("Fixture: %s (line %d)", fixture.Title, fixture.LineNumber)

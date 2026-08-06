@@ -3,9 +3,7 @@ basic SLW wrapping in paragraph
 This is a long sentence that exceeds the minimum length. It should be wrapped! Does it work? Yes it does.
 .
 This is a long sentence that exceeds the minimum length.
-It should be wrapped!
-Does it work?
-Yes it does.
+It should be wrapped! Does it work? Yes it does.
 .
 
 SLW disabled
@@ -32,13 +30,13 @@ Short sentence.
 Another one.
 .
 --slw-min-line=0
+
 SLW in blockquote
 .
 > This is a long sentence inside a blockquote. It should wrap properly! Does it work correctly?
 .
 > This is a long sentence inside a blockquote.
-> It should wrap properly!
-> Does it work correctly?
+> It should wrap properly! Does it work correctly?
 .
 
 SLW in nested blockquote
@@ -47,8 +45,7 @@ SLW in nested blockquote
 >
 > > Inner quote with another long sentence. It should also wrap correctly!
 .
-> Outer quote with a long sentence.
-> It should wrap properly!
+> Outer quote with a long sentence. It should wrap properly!
 >
 > > Inner quote with another long sentence.
 > > It should also wrap correctly!
@@ -61,8 +58,7 @@ Term with definition
 .
 Term with definition
 : This is a long definition that exceeds the minimum length.
-It should be wrapped properly!
-Does it work?
+It should be wrapped properly! Does it work?
 .
 
 SLW in list items - currently not supported
@@ -71,3 +67,53 @@ SLW in list items - currently not supported
 .
 - This is a long list item that exceeds the minimum length. It should be wrapped properly! Does it work correctly?
 .
+
+wraps to the configured width
+.
+alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau
+.
+alpha beta gamma delta epsilon zeta eta
+theta iota kappa lambda mu nu xi omicron
+pi rho sigma tau
+.
+--slw-wrap=40
+
+keeps a link on one line
+.
+See [the docs](https://example.com/a/very/long/path/that/goes/on/forever) for more info here.
+.
+See
+[the docs](https://example.com/a/very/long/path/that/goes/on/forever)
+for more info here.
+.
+--slw-wrap=40
+
+does not wrap inside a code span
+.
+Text with `a long code span with spaces` and more words to force a wrap here now.
+.
+Text with
+`a long code span with spaces`
+and more words to force a wrap
+here now.
+.
+--slw-wrap=30
+
+pulls a bullet off a wrapped line start
+.
+word word word word word word - dash starts here and continues on
+.
+word word word word word word -
+dash starts here and continues
+on
+.
+--slw-wrap=32
+
+measures the blockquote prefix against the width
+.
+> alpha beta gamma delta epsilon zeta eta theta iota
+.
+> alpha beta gamma delta epsilon
+> zeta eta theta iota
+.
+--slw-wrap=32

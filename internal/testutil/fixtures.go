@@ -2,7 +2,6 @@
 package testutil
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"strconv"
@@ -25,59 +24,49 @@ type Fixture struct {
 // ReadFixtures parses every fixture defined in the file at filepath.
 func ReadFixtures(filepath string) ([]Fixture, error) {
 	//nolint:gosec // Fixture paths come from the test suite, not from user input.
-	file, err := os.Open(filepath)
+	data, err := os.ReadFile(filepath)
 	if err != nil {
 		return nil, fmt.Errorf("opening fixture file: %w", err)
 	}
-	//nolint:errcheck // The fixture file is read-only, so a close failure cannot affect the parsed result.
-	defer file.Close()
 
+	return parseFixtures(strings.Split(string(data), "\n")), nil
+}
+
+// cursor walks the fixture file, so a section that stops on a line belonging to
+// the next fixture leaves that line for the next read rather than eating it.
+type cursor struct {
+	lines []string
+	i     int
+}
+
+func parseFixtures(lines []string) []Fixture {
 	var fixtures []Fixture
 
-	scanner := bufio.NewScanner(file)
-	lineNum := 0
+	c := &cursor{lines: lines}
 
-	for scanner.Scan() {
-		lineNum++
-		line := strings.TrimSpace(scanner.Text())
-
-		if line == "" {
+	for c.i < len(c.lines) {
+		title := strings.TrimSpace(c.lines[c.i])
+		if title == "" || c.i+1 >= len(c.lines) || strings.TrimSpace(c.lines[c.i+1]) != "." {
+			c.i++
 			continue
 		}
 
-		title := line
-		startLine := lineNum
-		lineNum++
+		startLine := c.i + 1
+		c.i += 2
 
-		if !scanner.Scan() {
-			break
-		}
-
-		if strings.TrimSpace(scanner.Text()) != "." {
-			continue
-		}
-
-		lineNum++
-
-		inputLines := readSection(scanner, &lineNum)
-		expectedLines := readSection(scanner, &lineNum)
-
-		options := readOptions(scanner, &lineNum)
+		input := c.section()
+		expected := c.section()
 
 		fixtures = append(fixtures, Fixture{
 			LineNumber: startLine,
 			Title:      title,
-			Input:      joinLines(inputLines),
-			Expected:   joinLines(expectedLines),
-			Options:    options,
+			Input:      joinLines(input),
+			Expected:   joinLines(expected),
+			Options:    c.options(),
 		})
 	}
 
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("scanning fixture file: %w", err)
-	}
-
-	return fixtures, nil
+	return fixtures
 }
 
 func joinLines(lines []string) string {
@@ -88,43 +77,37 @@ func joinLines(lines []string) string {
 	return strings.Join(lines, "\n") + "\n"
 }
 
-func readSection(scanner *bufio.Scanner, lineNum *int) []string {
-	var lines []string
+func (c *cursor) section() []string {
+	var section []string
 
-	for scanner.Scan() {
-		*lineNum++
-
-		line := scanner.Text()
-		if line == "." {
-			break
+	for ; c.i < len(c.lines); c.i++ {
+		if c.lines[c.i] == "." {
+			c.i++
+			return section
 		}
 
-		lines = append(lines, line)
+		section = append(section, c.lines[c.i])
 	}
 
-	return lines
+	return section
 }
 
-func readOptions(scanner *bufio.Scanner, lineNum *int) map[string]string {
+func (c *cursor) options() map[string]string {
 	options := make(map[string]string)
 
-	for scanner.Scan() {
-		*lineNum++
-
-		line := strings.TrimSpace(scanner.Text())
+	for ; c.i < len(c.lines); c.i++ {
+		line := strings.TrimSpace(c.lines[c.i])
 		if !strings.HasPrefix(line, "--") {
-			break
+			return options
 		}
 
-		option := strings.TrimPrefix(line, "--")
-
-		key, value, found := strings.Cut(option, "=")
+		key, value, found := strings.Cut(strings.TrimPrefix(line, "--"), "=")
 		if !found {
-			options[option] = optionEnabled
+			options[key] = optionEnabled
 			continue
 		}
 
-		options[key] = strings.Trim(value, "\"")
+		options[key] = strings.Trim(value, `"`)
 	}
 
 	return options

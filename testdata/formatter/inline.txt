@@ -74,7 +74,8 @@ Combined inline formatting
 .
 This paragraph has *bold*, _italic_, `code`, {-deleted-}, {+inserted+}, {=highlighted=}, subscript H{~2~}O, superscript x{^2^}, and [a link](https://example.com).
 .
-This paragraph has *bold*, _italic_, `code`, {-deleted-}, {+inserted+}, {=highlighted=}, subscript H{~2~}O, superscript x{^2^}, and [a link](https://example.com).
+This paragraph has *bold*, _italic_, `code`, {-deleted-}, {+inserted+}, {=highlighted=},
+subscript H{~2~}O, superscript x{^2^}, and [a link](https://example.com).
 .
 
 Nested inline formatting

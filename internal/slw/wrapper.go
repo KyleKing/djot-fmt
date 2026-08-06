@@ -2,8 +2,8 @@
 package slw
 
 import (
+	"regexp"
 	"strings"
-	"unicode"
 )
 
 const (
@@ -18,6 +18,13 @@ type Config struct {
 	MinLineLength int
 	MaxLineWidth  int
 	Enabled       bool
+}
+
+// Layout gives the columns a wrapped block occupies, so wrapping accounts for
+// the indent and line prefixes the writer adds around it.
+type Layout struct {
+	FirstColumn        int
+	ContinuationColumn int
 }
 
 // DefaultConfig returns the semantic line wrapping defaults.
@@ -45,7 +52,6 @@ func getDefaultAbbreviations() map[string]bool {
 
 	result := make(map[string]bool)
 	for _, abbrev := range abbrevs {
-		// Store both with and without period for easier matching
 		result[strings.ToLower(abbrev)] = true
 		result[strings.ToLower(strings.TrimSuffix(abbrev, "."))] = true
 	}
@@ -53,100 +59,154 @@ func getDefaultAbbreviations() map[string]bool {
 	return result
 }
 
-// WrapText inserts a line break after each sentence ending found in text.
-func WrapText(text string, config *Config) string {
-	if !config.Enabled || text == "" {
+// Wrap breaks one block of rendered inline text after sentence endings and at
+// the configured width. Existing line breaks are kept, because an author who
+// broke a line meant it.
+func Wrap(text string, layout Layout, cfg *Config) string {
+	if !cfg.Enabled || text == "" {
 		return text
 	}
 
-	var result strings.Builder
+	var out []string
 
-	lines := strings.Split(text, "\n")
+	column := layout.FirstColumn
 
-	for i, line := range lines {
-		if i > 0 {
-			result.WriteString("\n")
-		}
-
+	for _, line := range strings.Split(text, "\n") {
 		if strings.TrimSpace(line) == "" {
-			result.WriteString(line)
+			out = append(out, line)
+			column = layout.ContinuationColumn
+
 			continue
 		}
 
-		wrapped := wrapLine(line, config)
-		result.WriteString(wrapped)
+		wrapped := wrapLine(line, layout.withFirst(column), cfg)
+		out = append(out, wrapped...)
+		column = layout.ContinuationColumn
 	}
 
-	return result.String()
+	return pullBlockMarkers(out)
 }
 
-func wrapLine(line string, config *Config) string {
-	if config.MinLineLength > 0 && len(line) < config.MinLineLength {
-		return line
+func (l Layout) withFirst(column int) Layout {
+	l.FirstColumn = column
+	return l
+}
+
+func wrapLine(line string, layout Layout, cfg *Config) []string {
+	atoms := splitAtoms(collapseSpaces(line), cfg)
+	if len(atoms) == 0 {
+		return []string{""}
 	}
 
-	var result strings.Builder
+	var (
+		lines   []string
+		current strings.Builder
+	)
 
-	runes := []rune(line)
-	currentLineStart := 0
+	width := 0
+	column := layout.FirstColumn
 
-	for i := 0; i < len(runes); i++ {
-		if isSentenceBoundary(runes, i, config) {
-			segment := string(runes[currentLineStart : i+1])
-			result.WriteString(segment)
+	breakLine := func() {
+		lines = append(lines, current.String())
+		current.Reset()
 
-			j := skipWhitespace(runes, i+1)
+		width = 0
+		column = layout.ContinuationColumn
+	}
 
-			if j < len(runes) {
-				result.WriteString("\n")
+	for i, a := range atoms {
+		if width > 0 && exceedsWidth(column+width+1+a.width, cfg) {
+			breakLine()
+		}
 
-				currentLineStart = j
-				i = j - 1
-			}
+		if width > 0 {
+			current.WriteString(" ")
+
+			width++
+		}
+
+		current.WriteString(a.text)
+
+		width += a.width
+
+		if a.sentenceEnd && i < len(atoms)-1 && breaksAfterSentence(column+width, cfg) {
+			breakLine()
 		}
 	}
 
-	if currentLineStart < len(runes) {
-		result.WriteString(string(runes[currentLineStart:]))
+	if current.Len() > 0 {
+		lines = append(lines, current.String())
 	}
 
-	return result.String()
+	return lines
 }
 
-func isSentenceBoundary(runes []rune, i int, config *Config) bool {
-	if i >= len(runes) {
-		return false
-	}
-
-	char := runes[i]
-	if !strings.ContainsRune(config.Markers, char) {
-		return false
-	}
-
-	if i+1 >= len(runes) || !unicode.IsSpace(runes[i+1]) {
-		return false
-	}
-
-	return !isAbbreviation(runes, i, config.Abbreviations)
+func exceedsWidth(column int, cfg *Config) bool {
+	return cfg.MaxLineWidth > 0 && column > cfg.MaxLineWidth
 }
 
-func skipWhitespace(runes []rune, pos int) int {
-	for pos < len(runes) && unicode.IsSpace(runes[pos]) {
-		pos++
-	}
-
-	return pos
+func breaksAfterSentence(column int, cfg *Config) bool {
+	return cfg.MinLineLength <= 0 || column >= cfg.MinLineLength
 }
 
-func isAbbreviation(runes []rune, markerPos int, abbreviations map[string]bool) bool {
-	start := markerPos - 1
-	for start >= 0 && (unicode.IsLetter(runes[start]) || runes[start] == '.') {
-		start--
+// collapseSpaces reduces runs of spaces and tabs to one space. A non-breaking
+// space is content rather than layout, so it survives untouched.
+func collapseSpaces(line string) string {
+	var (
+		b       strings.Builder
+		lastGap bool
+	)
+
+	for _, r := range line {
+		gap := r == ' ' || r == '\t'
+		if gap && lastGap {
+			continue
+		}
+
+		if gap {
+			b.WriteRune(' ')
+		} else {
+			b.WriteRune(r)
+		}
+
+		lastGap = gap
 	}
 
-	start++
+	return strings.TrimSpace(b.String())
+}
 
-	word := strings.ToLower(string(runes[start:markerPos]))
+// RE2 has no backreferences, so the thematic break alternative is spelled out
+// once per marker character instead of matching the first one against itself.
+var blockMarker = regexp.MustCompile(
+	`^ {0,3}((-+|=+) *$|>|#{1,6}( |$)|\*( *\*){2,} *$|_( *_){2,} *$|[-+*]( |$)|\d{1,9}[.)]( |$))`,
+)
 
-	return abbreviations[word]
+// pullBlockMarkers moves a token back onto the line above when wrapping left it
+// at a line start where djot would reparse it as a block construct.
+func pullBlockMarkers(lines []string) string {
+	var merged []string
+
+	for _, line := range lines {
+		current := line
+		pulled := false
+
+		for len(merged) > 0 && blockMarker.MatchString(current) {
+			head, tail, _ := strings.Cut(strings.TrimSpace(current), " ")
+			merged[len(merged)-1] += " " + head
+			current = tail
+			pulled = true
+
+			if current == "" {
+				break
+			}
+		}
+
+		if current == "" && pulled {
+			continue
+		}
+
+		merged = append(merged, current)
+	}
+
+	return strings.Join(merged, "\n")
 }
