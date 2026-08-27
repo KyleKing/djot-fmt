@@ -1,3 +1,14 @@
+## v0.2.0 (2026-08-27)
+
+### Feat
+
+- **slw**: buffer inline output per block so wrapping sees the whole line
+- **validate**: reject formatting that changes what a document means
+
+### Fix
+
+- use portable arithmetic in the PyPI wait loop for Git Bash
+
 ## v0.1.2 (2026-08-05)
 
 ### Fix

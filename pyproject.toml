@@ -1,6 +1,6 @@
 [project]
 name = "djot-fmt"
-version = "0.1.2"
+version = "0.2.0"
 description = "Automatic formatter for djot markup files"
 readme = "README.md"
 requires-python = ">=3.10"
