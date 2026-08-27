@@ -1,0 +1,59 @@
+Working through ROADMAP.md. Two milestones are on main, five are not.
+
+DONE
+
+f85ad7f  validation (was M1)
+461c8cb  inline buffering (was M2)
+
+Both sections are deleted from ROADMAP.md. Working tree is clean and all five CI jobs
+pass (hk check --all, golangci-lint run, golangci-lint config verify, actionlint,
+mise run bench).
+
+NEXT: M3 frontmatter
+
+The yak-shears blocker and the only remaining case that destroys a file today. Detect a
+delimited block at byte 0 before BuildDjotAst runs, hold it aside, format the body, and
+re-emit it ahead of the output. Requires a closing delimiter, or a leading --- is a
+thematic break. Compare the held-aside bytes for equality outside the HTML check, since
+frontmatter is not djot and has no HTML rendering. ROADMAP.md has the rest.
+
+Then M4 (numbering), M5 (slw data and corpus), M6 (code blocks and trust), M7 (Python
+parse API), and config file support. Sequencing notes are at the bottom of ROADMAP.md.
+
+WHAT CHANGED FROM THE PLAN
+
+Three things I got wrong while planning and corrected against real behavior. They are
+worth knowing before touching the same code again.
+
+1. Diffing tag-only sequences misaligns. LCS matched the <hr> inside a paragraph against
+   a standalone one and called frontmatter loss a harmless loose-tight change. The full
+   token stream, words included, anchors the positions and puts it back on block-kind.
+
+2. --from-md as specified would have waived the nested-paragraph data-loss bug, because
+   content escaping a list item and a list gaining nesting fall in the same category.
+   Direction separates them: converting markdown only ever adds structure, since the fix
+   is inserting a blank line. A waiver now requires the deleted side to hold no list or
+   paragraph tags, which also closes paragraph merging that the word-multiset floor
+   would have passed on its own.
+
+3. The min-line threshold measures the accumulated output line, not the whole input
+   line. mdformat-slw does the former and the Go code did the latter. Five fixtures
+   changed; every new expectation was checked byte for byte against real mdformat-slw
+   output rather than derived on paper. Keep doing that for the rest of M5.
+
+KNOWN AND LEFT ALONE
+
+The fuzz target (internal/formatter/fuzz_test.go) finds a real difference in under a
+second: "# " followed by a lazy continuation line changes godjot's derived <section id>.
+Rejecting it is the safe call, because an authored {#custom-id} and a derived one look
+the same in the HTML. It is open question 5 in ROADMAP.md. Seeds pass, so plain go test
+is green; only -fuzz hits it.
+
+The fixture parser used to silently drop any fixture that followed an options block, so
+SLW in blockquote and three others had never run. internal/testutil/fixtures.go now
+walks with a cursor that leaves the terminating line for the next fixture.
+
+M5 is smaller than the roadmap table suggested. Collapse, protection, sentence breaks,
+width wrapping, and block-marker pull-off all landed with M2. What is left is the
+abbreviation data across six languages, display width for CJK and emoji (rune count
+today), align_continuation, and the shared corpus.

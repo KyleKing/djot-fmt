@@ -81,13 +81,7 @@ select = ["ALL"]
 inline-quotes = "single"
 
 [tool.ruff.lint.per-file-ignores]
-"bindings/python/tests/*" = [
-  "D",
-  "boolean-type-hint-positional-argument",
-  "implicit-namespace-package",
-  "magic-value-comparison",
-  "assert"
-]
+"bindings/python/tests/*" = ["D", "boolean-type-hint-positional-argument", "implicit-namespace-package", "magic-value-comparison", "assert"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

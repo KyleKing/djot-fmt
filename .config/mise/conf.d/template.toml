@@ -8,10 +8,7 @@ run = "go build -v -o djot-fmt ./cmd/djot-fmt"
 
 [tasks.ci]
 description = "Run all checks (used in GitHub Actions)"
-run = [
-  "go test -v -coverprofile=coverage.out ./...",
-  "go build -v -o djot-fmt ./cmd/djot-fmt"
-]
+run = ["go test -v -coverprofile=coverage.out ./...", "go build -v -o djot-fmt ./cmd/djot-fmt"]
 
 [tasks.clean]
 description = "Clean build artifacts"
