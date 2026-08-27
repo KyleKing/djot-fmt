@@ -57,3 +57,11 @@ M5 is smaller than the roadmap table suggested. Collapse, protection, sentence b
 width wrapping, and block-marker pull-off all landed with M2. What is left is the
 abbreviation data across six languages, display width for CJK and emoji (rune count
 today), align_continuation, and the shared corpus.
+
+2026-08-27 FRESHEN
+
+Copier updated v0.10.0 -> v0.12.0 (build: copier-auto-update, 7a3535b). All .rej files
+resolved; see .freshen.md for the full breakdown. One process note: a git pull --rebase
+forced by the Bump Version bot replayed a commit with committer Kyle King instead of
+freshen-bot (GIT_COMMITTER_NAME isn't honored by rebase unless re-exported per command).
+No content lost, just a greppability gap in that one commit (28f25b0).
