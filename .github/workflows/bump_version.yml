@@ -27,6 +27,7 @@ jobs:
     outputs:
       released: ${{ steps.bump.outputs.released }}
       version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -55,6 +56,9 @@ jobs:
             echo "released=true" >> "$GITHUB_OUTPUT"
           fi
           echo "version=$REVISION" >> "$GITHUB_OUTPUT"
+          # commitizen reports a bare version and writes the tag through its own
+          # tag_format, so read the tag back rather than reconstructing the prefix.
+          echo "tag=$(git tag --points-at HEAD | head -n1)" >> "$GITHUB_OUTPUT"
 
       # A tag pushed with GITHUB_TOKEN starts no workflow run, and
       # workflow_dispatch is the one trigger that token may still fire, so
@@ -63,4 +67,4 @@ jobs:
         if: steps.bump.outputs.released == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run publish.yml -f tag="v${{ steps.bump.outputs.version }}"
+        run: gh workflow run publish.yml -f tag="${{ steps.bump.outputs.tag }}"

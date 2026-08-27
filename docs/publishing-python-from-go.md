@@ -50,6 +50,16 @@ platform, and a new one every October.
 blocked in Go code run in parallel, so a `ThreadPoolExecutor` over this API gets
 real concurrency rather than interleaving.
 
+That parallelism is only safe if the Go code underneath is goroutine-safe, and
+plenty of libraries are not. A package-level map written during parsing is the
+common shape, and two Python threads reaching it at once abort the whole process
+with `fatal error: concurrent map writes`, which no `recover()` can catch. Check
+the library before advertising concurrency: run its parse or transform entry
+point under `go test -race` from several goroutines. When it is not safe, hold a
+`sync.Mutex` across the call in the shim and say so in the Python docstring.
+Serializing costs throughput, and a crashed interpreter costs the process.
+`djot-fmt` binds `godjot` this way for exactly this reason.
+
 ## Safety rules at the boundary
 
 Break any of these and the failure mode is a killed interpreter or a slow leak,
@@ -144,7 +154,7 @@ does that inspection and retags.
 
 cgo cannot cross-compile without a target toolchain, so every wheel builds on a
 runner of its own architecture and operating system. The matrix in
-`.github/workflows/publish_python.yml` covers six targets:
+`.github/workflows/publish.yml` covers six targets:
 
 | Target | Runner | Container |
 |--------|--------|-----------|
@@ -170,8 +180,25 @@ runner's own release, so the tag promises support the binary does not have.
 
 Publishing uses PyPI trusted publishing over OIDC. The job requests
 `permissions: id-token: write` and runs in a GitHub environment bound to the
-PyPI publisher, so there is no long-lived API token in repository secrets. A
-`workflow_dispatch` run publishes to TestPyPI, and a `v*` tag publishes to PyPI.
+PyPI publisher, so there is no long-lived API token in repository secrets.
+
+`publish.yml` is triggered by `workflow_dispatch` and takes the tag to publish.
+`bump_version.yml` dispatches it with `gh workflow run` after cutting a tag,
+which works because `workflow_dispatch` is the one event `GITHUB_TOKEN` may
+raise. Two constraints force this shape rather than a tag trigger or a
+`workflow_call`:
+
+- a tag pushed with `GITHUB_TOKEN` starts no workflow run, so an on-tag trigger
+  never fires for an automated release
+- PyPI validates the attestation against the top-level `workflow_ref`, so
+  publishing from inside a called workflow fails with a Build Config URI
+  mismatch even when the OIDC exchange succeeds
+
+Versions are semver (`v0.1.0-rc.2`), because goreleaser and the Go module proxy
+both reject PEP 440 prereleases like `0.1.0rc2`. Python normalizes semver to
+`0.1.0rc2` for the distribution, so the tag, `__version__`, and the installed
+version differ in form and must be compared through
+`packaging.utils.canonicalize_version`.
 
 ## Verify after publishing, on every platform
 

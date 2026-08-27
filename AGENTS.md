@@ -1,11 +1,11 @@
 # AI Agent Guidelines for djot-fmt
 
-How to work in this Go project. Architecture and domain context live in
-[DESIGN.md](DESIGN.md), task and release mechanics live in
+How to work in this Go project. Task and release mechanics live in
 [CONTRIBUTING.md](CONTRIBUTING.md), worked code examples live in
 [docs/go-best-practices.md](docs/go-best-practices.md), and toolchain failures live
-in [docs/troubleshooting.md](docs/troubleshooting.md). This file covers only what
-those do not. The cgo boundary and the PyPI release live in
+in [docs/troubleshooting.md](docs/troubleshooting.md). Architecture and domain
+context, where the project keeps a DESIGN.md, live there. This file covers only
+what those do not. The cgo boundary and the PyPI release live in
 [docs/publishing-python-from-go.md](docs/publishing-python-from-go.md).
 
 ## Verify before you report
@@ -124,13 +124,39 @@ local edits there. Project-specific mise tasks belong in a sibling conf.d file
 
 After `copier update --UNSAFE --conflict=rej --defaults`, re-apply real local content
 from each `.rej`, discard hunks the new template supersedes, and delete the files (a
-hook blocks committing them). Two specifics:
+hook blocks committing them). Three specifics:
 
 - `.cz.toml` is re-rendered with `version = "0.0.0"`. Restore the real version by hand
   or the next release cuts `v0.0.1`.
+- Scaffolding the project then implements (the `cmd/` entry point, the `bindings/` cgo
+  shim, its Python wrapper) conflicts on every update, because the template keeps
+  rendering its starting version. Re-apply from the `.rej` and move on
 - **The same file conflicting on two consecutive updates means an answer is wrong, not
   that the patch needs re-applying.** Read `.copier-answers.yml` first and fix the
   answer; a typo there gets faithfully re-rendered every pass.
+
+Resolve conflicts rather than avoiding them. Adding a file to `_skip_if_exists` looks
+like it removes the friction, and instead it makes the file stop receiving every later
+template fix, silently and forever. A conflict is loud and usually a few lines to
+re-apply, whereas a skipped file drifts without ever saying so. `_skip_if_exists` is
+for files the template has nothing further to say about after the first render, which
+is why it holds `README.md`, `DESIGN.md`, `go.mod`, and `.config/mise.toml` and nothing
+that carries template-maintained content.
+
+Resolving a conflict is half the work. The other half is deciding which side was
+better and backporting it. A `.rej` is a diff between what the template renders and
+what this project actually needed, so it names the gap directly:
+
+- The template's hunk is better, so take it and delete the local version
+- The local hunk is better and generalizes, so take it locally AND open the change
+  against [my_go_template](https://github.com/KyleKing/my_go_template) so the next
+  render starts from it
+- The local hunk is better and is specific to this project, so take it locally and
+  leave the template alone
+
+The second case is the one to watch for, because skipping it means re-resolving the
+same conflict on every future update. If a file clobbers the same way twice, the
+template is rendering the wrong thing and the fix belongs upstream.
 
 This file is template-owned and `copier update` keeps it current. Put project-specific
 guidance in `AGENTS.local.md` (loaded below when present) or in a nested `AGENTS.md`
