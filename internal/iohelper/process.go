@@ -11,7 +11,6 @@ import (
 	"github.com/pmezard/go-difflib/difflib"
 
 	"github.com/KyleKing/djot-fmt/internal/djotsafe"
-
 	"github.com/KyleKing/djot-fmt/internal/formatter"
 	"github.com/KyleKing/djot-fmt/internal/slw"
 	"github.com/KyleKing/djot-fmt/internal/validate"
