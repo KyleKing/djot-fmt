@@ -1,3 +1,9 @@
+## v0.2.1 (2026-08-31)
+
+### Fix
+
+- serialize godjot parsing, which races on a package-level map
+
 ## v0.2.0 (2026-08-27)
 
 ### Feat

@@ -1,6 +1,6 @@
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.2.0"
+version = "0.2.1"
 version_files = [
   ".cz.toml:^version",
   "bindings/python/djot_fmt/_core.py:^__version__",

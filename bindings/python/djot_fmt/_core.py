@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from threading import Lock
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 _LIB_STEM = '_libdjotfmt'
 _LIB_SUFFIXES = {'darwin': '.dylib', 'win32': '.dll'}
