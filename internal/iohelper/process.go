@@ -9,7 +9,8 @@ import (
 	"strings"
 
 	"github.com/pmezard/go-difflib/difflib"
-	"github.com/sivukhin/godjot/v2/djot_parser"
+
+	"github.com/KyleKing/djot-fmt/internal/djotsafe"
 
 	"github.com/KyleKing/djot-fmt/internal/formatter"
 	"github.com/KyleKing/djot-fmt/internal/slw"
@@ -41,7 +42,7 @@ func ProcessFile(opts *Options, inputFile string) (retErr error) {
 		return err
 	}
 
-	ast := djot_parser.BuildDjotAst(input)
+	ast := djotsafe.BuildAst(input)
 
 	slwConfig := &slw.Config{
 		Enabled:       !opts.NoWrapSentences,

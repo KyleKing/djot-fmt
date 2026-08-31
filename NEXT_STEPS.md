@@ -2,29 +2,25 @@
 
 ## godjot's tokenizer is not safe for concurrent use
 
-`djot_tokenizer.MatchInlineToken` writes a package-level map on every call
-(`djot_inline_token.go:28`, reached through `BuildDjotTokens` and `BuildDjotAst`).
-Two goroutines parsing at once corrupt it. This is a defect in
-`github.com/sivukhin/godjot/v2`, not here, but it reaches any caller of
-`validate.Compare` or the formatter that runs in parallel.
+`djot_tokenizer.MatchInlineToken` writes the package-level `StartSymbols` map on
+every successful match (`djot_inline_token.go:28`), guarded only by the
+`RecordStartSymbol` const, which is `true`. Two goroutines parsing at once corrupt
+it. Reached from `BuildDjotAst`, so it affects any concurrent caller, not just
+tests.
 
 Proven on 2026-08-31: `go test -count=1 ./...` died with a runtime
 `fatal error: concurrent map writes` inside `MatchInlineToken`, and
-`go test -count=1 -race ./internal/validate` reproduces it on every run, with both
-stacks landing on the same address through `mapaccess2`. `internal/formatter` shows
-the same warning.
+`go test -count=1 -race ./internal/validate` reproduced it on every run with both
+stacks on the same address through `mapaccess2`.
 
-Nothing catches it today because no mise task passes `-race`. The tasks are
-`ci`, `test`, `verify-released`, and `coverage`, all plain `go test`.
+`internal/djotsafe` now serializes every parse behind a mutex, and the two call
+sites (`validate.renderHTML` and `iohelper.processFile`) go through it.
+`go test -race ./...` is clean.
 
-Three ways out, in order of preference:
+Two things still owed:
 
-- Fix it upstream in godjot and pin the release. The map looks like a lazily
-  populated lookup table, so a `sync.Once` or a precomputed table would do it
-- Serialize godjot behind a mutex in `internal/validate` and the formatter, which
-  costs parallelism in exactly the hot path
-- Add `-race` to the `ci` task so it fails loudly. Do this only after one of the
-  above, because it turns CI red immediately
-
-Whichever lands, add `-race` to `ci` afterwards so a regression cannot go quiet
-again.
+- Fix it upstream in godjot and drop `internal/djotsafe`. `StartSymbols` looks
+  like instrumentation left switched on, so making `RecordStartSymbol` a var that
+  defaults to false, or guarding the write, would do it
+- Add `-race` to the `ci` task. No mise task passes it today, which is why a
+  fatal runtime error sat in a dependency unnoticed

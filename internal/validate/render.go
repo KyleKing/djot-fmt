@@ -7,7 +7,8 @@ import (
 	"strings"
 
 	"github.com/sivukhin/godjot/v2/djot_html"
-	"github.com/sivukhin/godjot/v2/djot_parser"
+
+	"github.com/KyleKing/djot-fmt/internal/djotsafe"
 )
 
 var (
@@ -20,7 +21,7 @@ var (
 // differences survive. Whitespace outside code is insignificant in HTML, and
 // empty paragraphs are ignored by user agents, so both are removed.
 func renderHTML(source []byte, langs []string) string {
-	ast := djot_parser.BuildDjotAst(source)
+	ast := djotsafe.BuildAst(source)
 	html := djot_html.New().ConvertDjot(&djot_html.HtmlWriter{}, ast...).String()
 
 	return normalizeHTML(html, langs)
