@@ -40,6 +40,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     _validate(args, parser)
 
+    # Without this, Windows text-mode writes turn the formatter's LF output into CRLF.
+    sys.stdout.reconfigure(newline='')
+
     options = {
         'wrap_sentences': not args.no_wrap_sentences,
         'markers': args.slw_markers,
@@ -63,9 +66,9 @@ def main(argv: list[str] | None = None) -> int:
                 needs_format = True
                 print(f'{path or "<stdin>"} is not formatted', file=sys.stderr)
         elif args.write and path is not None:
-            path.write_text(formatted, encoding='utf-8')
+            path.write_text(formatted, encoding='utf-8', newline='')
         elif args.output:
-            Path(args.output).write_text(formatted, encoding='utf-8')
+            Path(args.output).write_text(formatted, encoding='utf-8', newline='')
         else:
             sys.stdout.write(formatted)
 

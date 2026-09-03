@@ -39,12 +39,11 @@ def test_go_version_is_stamped() -> None:
 def test_cli_formats_stdin() -> None:
     result = subprocess.run(
         [sys.executable, '-m', 'djot_fmt._cli'],
-        input='- a\n- b\n',
+        input=b'- a\n- b\n',
         capture_output=True,
-        text=True,
         check=True,
     )
-    assert result.stdout == '- a\n- b\n'
+    assert result.stdout == b'- a\n- b\n'
 
 
 def test_cli_check_flags_unformatted_input() -> None:
