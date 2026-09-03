@@ -1,3 +1,9 @@
+## v0.2.3 (2026-09-03)
+
+### Fix
+
+- **ci**: correct the Publish verify fixture and Python smoke check
+
 ## v0.2.2 (2026-08-31)
 
 ### Fix
