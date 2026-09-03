@@ -203,7 +203,7 @@ jobs:
         run: |
           printf '  hello  ' > input.txt
           uvx --refresh --from "${PACKAGE_NAME}==${VERSION}" djot-fmt input.txt > actual.txt
-          printf 'hello' > expected.txt
+          printf 'hello\n' > expected.txt
           diff -u expected.txt actual.txt
 
       # The tag carries the raw semver string while Python normalizes the
@@ -216,7 +216,7 @@ jobs:
           from packaging.utils import canonicalize_version
 
           expected = canonicalize_version('${VERSION}')
-          assert djot_fmt.run('  hello  ') == 'hello', djot_fmt.run('  hello  ')
+          assert djot_fmt.format('  hello  ') == 'hello\n', djot_fmt.format('  hello  ')
           assert canonicalize_version(djot_fmt.__version__) == expected, djot_fmt.__version__
           assert canonicalize_version(djot_fmt.go_version().split()[0]) == expected, djot_fmt.go_version()
           print('ok', djot_fmt.go_version())

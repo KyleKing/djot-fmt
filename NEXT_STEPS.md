@@ -24,15 +24,3 @@ Two things still owed:
   defaults to false, or guarding the write, would do it
 - Add `-race` to the `ci` task. No mise task passes it today, which is why a
   fatal runtime error sat in a dependency unnoticed
-
-## The Publish workflow fails on Windows over a trailing newline
-
-`Verify windows-x86_64` compares the console script's output against a fixture and
-gets `-hello\ No newline at end of file` versus `+hello`. The check writes
-`expected.txt` without a final newline and reads back what the script emits, which on
-Windows carries one. Every Publish run since v0.2.0 has failed here while the linux
-and macOS verifies pass, so no release has shipped a verified Windows artifact.
-
-Fix the comparison rather than the output: normalize both sides before diffing, or
-write the fixture through the same path the actual output takes. Changing what the
-script prints to satisfy a shell comparison would be the wrong end of it.
